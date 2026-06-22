@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Editor</title>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="s-posting.css">   <!-- reuse blog editor styling -->
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Firebase + Scripts -->
+    <script type="module" src="j-firebase.js"></script>
+    <script src="j-modules.js"></script>
+    <script src="functions/editor.js"></script> <!-- your PostEditor class -->
+    
+    <script src="functions/project-editor.js" defer></script>
+
+
+    <script>
+            document.addEventListener('DOMContentLoaded', async function() {
+                await ModuleLoader.loadMultipleModules([
+                    { 
+                        path: 'modules/account-bar.html', 
+                        target: '#account-bar',
+                        authCallback: window.updateAccountBar  // This updates based on auth state
+                    },
+                    { path: 'modules/small-grid-container.html', target: '#small-grid-container' }
+                ]);
+                
+                // Any page-specific JavaScript after modules load
+                initializePageSpecificFeatures();
+            });
+            
+            function initializePageSpecificFeatures() {
+                // Add event listeners, initialize components, etc.
+                console.log('Main page modules loaded and initialized');
+            }
+    </script>
+
+</head>
+<body>
+  <!-- Global Account Bar -->
+  <div id="account-bar"></div>
+    <header class="hero-small">
+        <div class="hero-small-content">
+            <h1>Project Editing</h1>
+        </div>
+    </header>
+    <div id="small-grid-container"></div>
+
+  <main class="editor-layout">
+
+    
+    <!-- Project Metadata -->
+    <section class="project-metadata">
+      <h2>Project Details</h2>
+
+      <div class="metadata-group">
+        <label for="project-title">Title</label>
+        <input type="text" id="project-title" placeholder="Project Title">
+      </div>
+
+      <div class="metadata-group">
+        <label for="project-excerpt">Excerpt</label>
+        <textarea id="project-excerpt" placeholder="Brief summary..."></textarea>
+      </div>
+
+      <div class="metadata-group">
+        <label for="project-tags">Tags (comma separated)</label>
+        <input type="text" id="project-tags" placeholder="e.g. Research, Design, Prototype">
+      </div>
+
+      <label class="featured-checkbox">
+        <input type="checkbox" id="project-featured">
+        Mark as Featured
+      </label>
+
+      <div id="save-status" class="save-status"></div>
+    </section>
+
+    <!-- Project Phases -->
+    <section class="project-phases">
+      <div class="phases-header">
+        <h2>Project Phases</h2>
+        <button id="add-phase-btn">+ Add Phase</button>
+      </div>
+      <div id="phases-container">
+        <!-- Existing phases will load here -->
+      </div>
+    </section>
+  </main>
+</body>
+</html>

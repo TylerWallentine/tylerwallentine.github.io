@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script type="module" src="j-firebase.js"></script>
+    <script src="j-modules.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            await ModuleLoader.loadMultipleModules([
+                { 
+                    path: 'modules/account-bar.html', 
+                    target: '#account-bar',
+                    authCallback: window.updateAccountBar  // This updates based on auth state
+                },
+                { path: 'modules/small-grid-container.html', target: '#small-grid-container' }
+            ]);
+            
+            // Any page-specific JavaScript after modules load
+            initializePageSpecificFeatures();
+        });
+        
+        function initializePageSpecificFeatures() {
+            // Add event listeners, initialize components, etc.
+            console.log('Main page modules loaded and initialized');
+        }
+    </script>
+
+</head>
+<body>
+    <div id="account-bar"></div>
+    <header class="hero-small">
+        <div class="hero-small-content">
+            <h1>Contact</h1>
+        </div>
+    </header>
+    <div id="small-grid-container"></div>
+
+    
+    
+    
+    
+</body>
+
+</html>

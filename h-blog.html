@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">   
+    <link rel="stylesheet" href="styles-phone.css" media="only screen and (max-width: 768px)">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Load existing Firebase from j-firebase.js (optional) -->
+    <script type="module" src="j-firebase.js"></script>
+    <script src="functions/blog-post-viewer.js"></script>
+    <!-- Blog-specific Firebase functions -->
+    <script type="module">
+        // Import Firebase functions
+        
+        
+        // Wait a moment for j-firebase.js to load, then check if Firebase exists
+        setTimeout(() => {
+            let app;
+            const db = window.firestoreDb;
+            
+            
+            // Blog loading functions
+            window.loadBlogPosts = async function() {
+                
+                try {
+                    
+                    // Test basic connection first
+                    const testQuery = window.fsQuery(window.fsCollection(db, 'posts'), window.fsLimit(1));
+                    const testSnapshot = await window.fsGetDocs(testQuery);
+                    
+                    // Load featured post
+                    const featuredQuery = window.fsQuery(
+                        window.fsCollection(db, 'posts'),
+                        window.fsWhere('published', '==', true),
+                        window.fsWhere('featured', '==', true),
+                        window.fsOrderBy('createdAt', 'desc'),
+                        window.fsLimit(1)
+                    );
+
+                    
+                    const featuredSnapshot = await window.fsGetDocs(featuredQuery);
+                    
+                    if (featuredSnapshot.empty) {
+                        document.getElementById('featured-post').innerHTML = `
+                            <div class="no-content-message">
+                                <h3>No featured posts at this time</h3>
+                                <p>Check back soon for highlighted content.</p>
+                            </div>
+                        `;
+                    } else {
+                        const post = { id: featuredSnapshot.docs[0].id, ...featuredSnapshot.docs[0].data() };
+                        displayFeaturedPost(post);
+                    }
+                    
+                    // Load recent posts
+                    const recentQuery = window.fsQuery(
+                        window.fsCollection(db, 'posts'),
+                        window.fsWhere('published', '==', true),
+                        window.fsOrderBy('createdAt', 'desc'),
+                        window.fsLimit(6)
+                    );
+
+                    
+                    const recentSnapshot = await window.fsGetDocs(recentQuery);
+                    
+                    if (recentSnapshot.empty) {
+                        document.getElementById('recent-posts').innerHTML = `
+                            <div class="no-content-message">
+                                <h3>No recent posts found</h3>
+                                <p>New articles will appear here as they are published.</p>
+                            </div>
+                        `;
+                    } else {
+                        const posts = recentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        displayRecentPosts(posts.filter(post => !post.featured));
+                    }
+                    
+                } catch (error) {
+                    console.error('Error loading posts:', error);
+                    document.getElementById('featured-post').innerHTML = `
+                        <div class="error-message">
+                            <h3>Error loading posts</h3>
+                            <p>${error.message}</p>
+                        </div>
+                    `;
+                    document.getElementById('recent-posts').innerHTML = `
+                        <div class="error-message">
+                            <h3>Error loading recent posts</h3>
+                            <p>${error.message}</p>
+                        </div>
+                    `;
+                }
+            };
+
+            function displayFeaturedPost(post) {
+            const postDate = post.createdAt?.toDate?.() || new Date();
+            document.getElementById('featured-post').innerHTML = `
+                <div class="featured-post-content">
+                    ${post.previewImage ? 
+                        `<img src="${post.previewImage}" alt="Preview" class="featured-post-image">` 
+                        : ""}
+                    <div class="featured-post-meta">
+                        <span class="post-date">${postDate.toLocaleDateString()}</span>
+                        <span class="featured-badge">Featured</span>
+                    </div>
+                    <h2>${post.title}</h2>
+                    <p>${post.excerpt || 'No excerpt available.'}</p>
+                    <div class="post-tags">
+                        ${(post.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('')}
+                    </div>
+                    <button class="read-more-btn" data-post-id="${post.id}">Read More</button>
+                </div>
+            `;
+        }
+
+
+
+        function displayRecentPosts(posts) {
+            document.getElementById('recent-posts').innerHTML = posts.map(post => {
+                const postDate = post.createdAt?.toDate?.() || new Date();
+                return `
+                    <article class="blog-post-card">
+                        ${post.previewImage ? 
+                            `<img src="${post.previewImage}" alt="Preview" class="recent-post-image">` 
+                            : ""}
+                        <div class="post-meta">
+                            <span class="post-date">${postDate.toLocaleDateString()}</span>
+                        </div>
+                        <h3>${post.title}</h3>
+                        <p>${post.excerpt || 'No excerpt available.'}</p>
+                        <div class="post-tags">
+                            ${(post.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('')}
+                        </div>
+                        <button class="read-more-btn" data-post-id="${post.id}">Read More</button>
+                    </article>
+                `;
+            }).join('');
+        }
+
+
+
+            window.setupSearchAndFilters = function() {
+
+            };
+
+            // Debug function
+            window.debugBlog = async function() {
+                try {
+                    const testQuery = window.fsQuery(
+                        window.fsCollection(db, 'posts'),
+                        window.fsLimit(1)
+                    );
+                    const testSnapshot = await window.fsGetDocs(testQuery);
+                    console.log("Debug query succeeded:", testSnapshot.size, "docs found");
+                } catch (error) {
+                    console.error('Firestore test failed:', error);
+                }
+            };
+
+            
+            // Signal that blog functions are ready
+            window.blogFunctionsReady = true;
+            
+        }, 500); // Wait 500ms for j-firebase.js to potentially load
+    </script>
+    
+    <script src="j-modules.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+        // Load modules first
+        await ModuleLoader.loadMultipleModules([
+            { 
+                path: 'modules/account-bar.html', 
+                target: '#account-bar',
+                authCallback: window.updateAccountBar
+            },
+            { path: 'modules/small-grid-container.html', target: '#small-grid-container' }
+        ]);
+        
+        // Initialize blog functionality
+        initializePageSpecificFeatures();
+
+        // ✅ Wire up New Post button
+        document.addEventListener("click", (e) => {
+            if (e.target && e.target.id === "new-post-btn" && window.blogPostViewer) {
+                window.blogPostViewer.openPost("new");
+            }
+        });
+    });
+
+        document.addEventListener("click", (e) => {
+        if (e.target && e.target.classList.contains("read-more-btn")) {
+
+            const postId = e.target.getAttribute("data-post-id");
+            if (postId && window.blogPostViewer) {
+                window.blogPostViewer.openPost(postId);
+            }
+        }
+    });
+
+
+        
+        function initializePageSpecificFeatures() {
+            
+            // Wait for blog functions to be ready
+            function waitForBlogFunctions() {
+
+                
+                if (window.blogFunctionsReady && window.loadBlogPosts) {
+                    // Load blog content
+                    window.loadBlogPosts();
+                    
+                    // Setup search and filters
+                    if (window.setupSearchAndFilters) {
+                        window.setupSearchAndFilters();
+                    }
+                    
+                    
+                    // Run debug after a short delay
+                    setTimeout(() => {
+                        if (window.debugBlog) window.debugBlog();
+                    }, 2000);
+                } else {
+
+                    setTimeout(waitForBlogFunctions, 500);
+                }
+            }
+            
+            waitForBlogFunctions();
+        }
+
+        async function showNewPostButtonIfAllowed() {
+            const role = await window.blogPostViewer.getUserRole();
+            
+            if (role.toLowerCase() === 'editor' || role.toLowerCase() === 'writer') {
+                console.log(role)
+                document.getElementById('new-post-btn').style.display = 'flex';
+            }
+        }
+
+        // Call after blogFunctionsReady
+        setTimeout(() => {
+            if (window.blogPostViewer) {
+                showNewPostButtonIfAllowed();
+            }
+        }, 1500);
+
+        
+        function showFirebaseError() {
+            document.getElementById('featured-post').innerHTML = `
+                <div class="error-message">
+                    <h3>Configuration Error</h3>
+                    <p>Unable to connect to the blog database.</p>
+                </div>
+            `;
+            document.getElementById('recent-posts').innerHTML = `
+                <div class="error-message">
+                    <h3>Configuration Error</h3>
+                    <p>Unable to load blog posts at this time.</p>
+                </div>
+            `;
+        }
+        
+        // Utility function to clear search and reset view
+        window.clearSearch = function() {
+            document.getElementById('blog-search').value = '';
+            document.querySelectorAll('.filter-option input').forEach(cb => cb.checked = false);
+            
+            // Show featured section again
+            document.querySelector('.featured-section').style.display = 'block';
+            document.querySelector('.recent-posts-section .section-title').textContent = 'Recent Posts';
+            
+            // Reload default content
+            if (window.loadBlogPosts) window.loadBlogPosts();
+        };
+    </script>
+</head>
+<body>
+    <!-- Persistent elements that never reload -->
+    <div id="account-bar"></div>
+    <header class="hero-small">
+        <div class="hero-small-content">
+            <h1>Blog</h1>
+        </div>
+    </header>
+    <div id="small-grid-container"></div>
+
+    <!-- Dynamic content area -->
+    <div id="page-content">
+        <main class="blog-layout">
+            <div class="blog-content">
+                <!-- Featured Post Section -->
+                <!-- Featured Post Section -->
+
+                <!-- Filtered Posts (hidden by default) -->
+                <section id="filtered-posts" style="display: none;">
+                    <h3 id="filtered-title"></h3>
+                    <div id="filtered-list" class="filtered-list"></div>
+                </section>
+
+
+                <section class="featured-section">
+                    
+                    <h2 class="section-title">Featured Post</h2>
+                    <div id="featured-post" class="featured-post">
+                        <div class="loading-message">Loading featured post...</div>
+                    </div>
+                </section>
+
+
+                <!-- Recent Posts Section -->
+                <section class="recent-posts-section">
+                    <h2 class="section-title">Recent Posts</h2>
+                    <div id="recent-posts" class="recent-posts">
+                        <div class="loading-message">Loading recent posts...</div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Sidebar -->
+            <aside class="blog-sidebar">
+                <div id="new-post-bar">
+                    <button id="new-post-btn" class="new-post-btn">+ New Post</button>
+                </div>
+                <!-- Search Bar -->
+                <div class="search-section">
+                    <h3>Search</h3>
+                    <div class="search-box">
+                        <input type="text" id="blog-search" placeholder="Search posts...">
+                        <button class="search-btn">🔍</button>
+                    </div>
+                    <button class="clear-search-btn" onclick="clearSearch()" style="display: none; margin-top: 10px;">Clear Search</button>
+                </div>
+
+                <!-- Filters -->
+                <div class="filters-section">
+                    <h3>Categories</h3>
+                    <div id="popular-categories">
+                        <div class="loading-message" style="padding:10px;">Loading categories...</div>
+                    </div>
+                    <div class="category-dropdown" style="margin-top:10px; display:none;">
+                        <select id="category-dropdown-select" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;">
+                        <option value="">More categories...</option>
+                        </select>
+                    </div>
+                </div>
+
+
+                <!-- Tags Cloud -->
+                <div class="tags-section">
+                    <h3>Popular Tags</h3>
+                    <div class="tags-cloud" id="tags-cloud">
+                        <div class="loading-message" style="padding: 20px; font-size: 12px;">Loading tags...</div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <script>
+    window.addEventListener("load", () => {
+  setTimeout(loadPopularTags, 500);
+});
+
+async function loadPopularTags() {
+  const cloud = document.getElementById("tags-cloud");
+  if (!cloud) return;
+
+  cloud.innerHTML = `<div class="loading-message" style="padding: 20px; font-size: 12px;">Loading tags...</div>`;
+
+  try {
+    const postsSnapshot = await window.fsGetDocs(window.fsCollection(window.firestoreDb, "posts"));
+    const tagCounts = {};
+
+    postsSnapshot.forEach(doc => {
+      const data = doc.data();
+
+      // Skip unpublished posts
+      if (!data.published) return;
+
+      if (data.tags) {
+        const tagsArray = Array.isArray(data.tags)
+          ? data.tags
+          : data.tags.split(",").map(t => t.trim());
+        
+        tagsArray.forEach(tag => {
+          const key = tag.toLowerCase();
+          tagCounts[key] = (tagCounts[key] || 0) + 1;
+        });
+      }
+    });
+
+    const sortedTags = Object.entries(tagCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 15);
+
+    cloud.innerHTML = "";
+
+    if (sortedTags.length === 0) {
+      cloud.innerHTML = `<div style="padding: 20px; font-size: 12px;">No tags found.</div>`;
+      return;
+    }
+
+    sortedTags.forEach(([tag, count]) => {
+        const span = document.createElement("span");
+        span.className = "tag";
+        span.textContent = `${tag} (${count})`;
+        span.title = `${count} post${count > 1 ? "s" : ""}`;
+        span.dataset.tag = tag.toLowerCase();
+        span.addEventListener("click", () => filterPostsByTag(tag));
+
+        cloud.appendChild(span);
+
+    });
+
+  } catch (error) {
+    console.error("Failed to load popular tags:", error);
+    cloud.innerHTML = `<div style="padding: 20px; font-size: 12px;">Failed to load tags.</div>`;
+  }
+    }
+
+    let activeTag = null;
+
+    function filterPostsByTag(tag) {
+        const posts = document.querySelectorAll(".blog-post");
+
+        if (activeTag === tag) {
+            // clicking the same tag again resets
+            activeTag = null;
+            posts.forEach(post => (post.style.display = ""));
+            highlightActiveTag();
+            return;
+        }
+
+        activeTag = tag.toLowerCase();
+        posts.forEach(post => {
+            const postTags = (post.dataset.tags || "").toLowerCase();
+            post.style.display = postTags.includes(activeTag) ? "" : "none";
+        });
+
+        highlightActiveTag();
+        }
+
+        function highlightActiveTag() {
+        document.querySelectorAll(".tags-cloud .tag").forEach(span => {
+            span.classList.toggle("active", span.dataset.tag === activeTag);
+        });
+        }
+    
+    async function filterPostsByTag(tag) {
+  const container = document.getElementById("filtered-posts");
+  const title = document.getElementById("filtered-title");
+  const list = document.getElementById("filtered-list");
+
+  // Clicking the same tag again clears filter
+  if (activeTag === tag) {
+    activeTag = null;
+    container.style.display = "none";
+    highlightActiveTag();
+    return;
+  }
+
+  activeTag = tag.toLowerCase();
+  highlightActiveTag();
+
+  // Update header and show container
+  title.textContent = `Posts tagged with "${tag}"`;
+  container.style.display = "block";
+  list.innerHTML = `<div style="padding:10px;">Loading...</div>`;
+
+  try {
+    const postsSnapshot = await window.fsGetDocs(window.fsCollection(window.firestoreDb, "posts"));
+    const posts = [];
+
+    postsSnapshot.forEach(doc => {
+      const data = doc.data();
+      if (!data.published) return;
+
+      const tags = Array.isArray(data.tags) ? data.tags : (data.tags || "").split(",");
+      if (tags.map(t => t.trim().toLowerCase()).includes(activeTag)) {
+        posts.push({ id: doc.id, ...data });
+      }
+    });
+
+    if (posts.length === 0) {
+      list.innerHTML = `<div style="padding:10px;">No posts found for "${tag}".</div>`;
+      return;
+    }
+
+    // Render posts
+    list.innerHTML = "";
+    posts.forEach(post => {
+      const el = document.createElement("div");
+      el.className = "blog-post";
+      el.innerHTML = `
+        <h4>${post.title}</h4>
+        <p>${post.excerpt || ""}</p>
+        <button onclick="openPost('${post.id}')">Read More</button>
+      `;
+      list.appendChild(el);
+    });
+
+  } catch (err) {
+    console.error("Failed to filter posts:", err);
+    list.innerHTML = `<div style="padding:10px;">Error loading posts.</div>`;
+  }
+}
+
+function openPost(id) {
+  window.blogPostViewer.openPost(id);
+}
+
+
+
+    </script>
+
+
+    <script>
+window.addEventListener("load", () => {
+  setTimeout(loadCategories, 700);
+});
+
+async function loadCategories() {
+  const container = document.getElementById("popular-categories");
+  const dropdownWrapper = document.querySelector(".category-dropdown");
+  const dropdown = document.getElementById("category-dropdown-select");
+
+  try {
+    const postsSnapshot = await window.fsGetDocs(window.fsCollection(window.firestoreDb, "posts"));
+    const counts = {};
+
+    postsSnapshot.forEach(doc => {
+      const data = doc.data();
+      if (!data.published || !data.category) return;
+      const cat = data.category.trim();
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const topFive = sorted.slice(0, 5);
+    const rest = sorted.slice(5);
+
+    container.innerHTML = "";
+
+    // ✅ create checkboxes for top five
+    topFive.forEach(([cat, count]) => {
+      const div = document.createElement("div");
+      div.className = "filter-option";
+      div.innerHTML = `
+        <input type="checkbox" id="cat-${cat}" value="${cat}">
+        <label for="cat-${cat}">${cat} (${count})</label>
+      `;
+      div.querySelector("input").addEventListener("change", (e) => {
+        toggleCategoryFilter(e.target.value, e.target.checked);
+      });
+      container.appendChild(div);
+    });
+
+    // ✅ populate dropdown for rest
+    if (rest.length > 0) {
+      dropdownWrapper.style.display = "block";
+      rest.forEach(([cat, count]) => {
+        const opt = document.createElement("option");
+        opt.value = cat;
+        opt.textContent = `${cat} (${count})`;
+        dropdown.appendChild(opt);
+      });
+
+      dropdown.addEventListener("change", (e) => {
+        if (e.target.value) {
+          toggleCategoryFilter(e.target.value, true);
+          e.target.value = ""; // reset dropdown
+        }
+      });
+    }
+  } catch (err) {
+    console.error("Failed to load categories:", err);
+    container.innerHTML = `<div style="padding:10px;">Error loading categories.</div>`;
+  }
+}
+
+// ✅ Active category set
+const activeCategories = new Set();
+
+async function toggleCategoryFilter(category, isChecked) {
+  const container = document.getElementById("filtered-posts");
+  const title = document.getElementById("filtered-title");
+  const list = document.getElementById("filtered-list");
+  const featured = document.querySelector(".featured-section");
+  const recent = document.querySelector(".recent-posts-section");
+
+  // Toggle selected categories
+  if (isChecked) {
+    activeCategories.add(category);
+  } else {
+    activeCategories.delete(category);
+  }
+
+  // ✅ If no categories active, restore default layout
+  if (activeCategories.size === 0) {
+    container.style.display = "none";
+    if (featured) featured.style.display = "block";
+    if (recent) recent.style.display = "block";
+    return;
+  }
+
+  // Hide featured and recent sections when filtering
+  if (featured) featured.style.display = "none";
+  if (recent) recent.style.display = "none";
+  container.style.display = "block";
+
+  const cats = [...activeCategories];
+  title.textContent =
+    cats.length === 1
+      ? `Posts in "${cats[0]}"`
+      : `Posts in categories: ${cats.join(", ")}`;
+  list.innerHTML = `<div style="padding:10px;">Loading...</div>`;
+
+  try {
+    const postsSnapshot = await window.fsGetDocs(window.fsCollection(window.firestoreDb, "posts"));
+    const posts = [];
+
+    postsSnapshot.forEach(doc => {
+      const data = doc.data();
+      if (!data.published || !data.category) return;
+      if (cats.includes(data.category)) {
+        posts.push({ id: doc.id, ...data });
+      }
+    });
+
+    list.innerHTML = posts.length
+      ? posts
+          .map(
+            post => `
+          <div class="blog-post">
+            <h4>${post.title}</h4>
+            <p>${post.excerpt || ""}</p>
+            <button onclick="openPost('${post.id}')">Read More</button>
+          </div>`
+          )
+          .join("")
+      : `<div style="padding:10px;">No posts found in selected categories.</div>`;
+  } catch (err) {
+    console.error("Error filtering posts:", err);
+    list.innerHTML = `<div style="padding:10px;">Error loading posts.</div>`;
+  }
+}
+</script>
+
+<script>
+
+    const searchInput = document.getElementById("blog-search");
+    const searchButton = document.querySelector(".search-btn");
+    const clearSearchButton = document.querySelector(".clear-search-btn");
+
+    searchButton.addEventListener("click", runBlogSearch);
+    searchInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") runBlogSearch();
+    });
+
+    async function runBlogSearch() {
+  const query = searchInput.value.trim().toLowerCase();
+  const container = document.getElementById("filtered-posts");
+  const title = document.getElementById("filtered-title");
+  const list = document.getElementById("filtered-list");
+  const featured = document.querySelector(".featured-section");
+  const recent = document.querySelector(".recent-posts-section");
+
+  // Reset view if search is empty
+  if (!query) {
+    container.style.display = "none";
+    if (featured) featured.style.display = "block";
+    if (recent) recent.style.display = "block";
+    clearSearchButton.style.display = "none";
+    return;
+  }
+
+  clearSearchButton.style.display = "block";
+  if (featured) featured.style.display = "none";
+  if (recent) recent.style.display = "none";
+  container.style.display = "block";
+
+  title.textContent = `Search results for "${query}"`;
+  list.innerHTML = `<div style="padding:10px;">Searching...</div>`;
+
+  try {
+    const postsSnapshot = await window.fsGetDocs(
+      window.fsCollection(window.firestoreDb, "posts")
+    );
+
+    // Priority lists
+    const matchesTitle = [];
+    const matchesMeta = [];   // tags, category, excerpt
+    const matchesBody = [];
+
+    postsSnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (!data.published) return;
+
+      const titleText = (data.title || "").toLowerCase();
+      const bodyText = (data.plainText || data.content || "").toLowerCase();
+      const excerptText = (data.excerpt || "").toLowerCase();
+      const tagsText = Array.isArray(data.tags)
+        ? data.tags.join(" ").toLowerCase()
+        : (data.tags || "").toLowerCase();
+      const categoryText = (data.category || "").toLowerCase();
+
+      if (titleText.includes(query)) {
+        matchesTitle.push({ id: doc.id, ...data });
+      } else if (
+        tagsText.includes(query) ||
+        categoryText.includes(query) ||
+        excerptText.includes(query)
+      ) {
+        matchesMeta.push({ id: doc.id, ...data });
+      } else if (bodyText.includes(query)) {
+        matchesBody.push({ id: doc.id, ...data });
+      }
+    });
+
+    const results = [...matchesTitle, ...matchesMeta, ...matchesBody];
+
+    list.innerHTML = results.length
+      ? results
+          .map(
+            (post) => `
+          <div class="blog-post">
+            <h4>${post.title}</h4>
+            <p>${post.excerpt || ""}</p>
+            <button onclick="openPost('${post.id}')">Read More</button>
+          </div>`
+          )
+          .join("")
+      : `<div style="padding:10px;">No posts found for "${query}".</div>`;
+  } catch (err) {
+    console.error("Search error:", err);
+    list.innerHTML = `<div style="padding:10px;">Error performing search.</div>`;
+  }
+}
+
+
+    // ✅ Clear search button behavior (restore default layout)
+    clearSearchButton.addEventListener("click", () => {
+    searchInput.value = "";
+    clearSearchButton.style.display = "none";
+    document.getElementById("filtered-posts").style.display = "none";
+
+    const featured = document.querySelector(".featured-section");
+    const recent = document.querySelector(".recent-posts-section");
+    if (featured) featured.style.display = "block";
+    if (recent) recent.style.display = "block";
+    });
+
+
+</script>
+
+</body>
+
+
+
+
+</html>

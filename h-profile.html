@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles-tablet.css">
+    <link rel="stylesheet" href="styles-phone.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style> body {background: linear-gradient(to bottom, white 0%, #1a4d3a 100%); margin: 0;}</style>
+
+    <script type="module" src="j-firebase.js"></script>
+    <script type="module" src="functions/login.js"></script>
+    <script type="module" src="functions/logout.js"></script>
+    <script type="module" src="functions/profile-edit.js"></script>
+    <script src="j-modules.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            await ModuleLoader.loadMultipleModules([
+                { 
+                    path: 'modules/account-bar.html', 
+                    target: '#account-bar',
+                    authCallback: window.updateAccountBar
+                },
+                {path: 'modules/profile-box.html', target: '#profile-box'}
+            ]);
+            
+            initializePageSpecificFeatures();
+        });
+
+        function initializePageSpecificFeatures() {
+            console.log('Profile page modules loaded and initialized');
+            
+            // Wait for Firebase auth to be ready, then populate profile
+            if (window.firebaseAuth) {
+                populateUserProfile();
+            } else {
+                // If Firebase isn't ready yet, wait a bit
+                setTimeout(() => {
+                    if (window.firebaseAuth) {
+                        populateUserProfile();
+                    }
+                }, 1000);
+            }
+        }
+
+        async function populateUserProfile() {
+            // Import the auth state listener from your firebase module
+            const auth = window.firebaseAuth;
+            const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+
+            onAuthStateChanged(auth, async (user) => {
+
+                if (user) {
+                    console.log('Populating profile for user:', user.email);
+                    
+                    try {
+                        // Get user profile from Firestore (assuming you have findUserByEmail function available)
+                        const userProfile = await window.findUserByEmail(user.email);
+                        
+                        if (userProfile) {
+                            updateProfileFields(userProfile, user);
+                        } else {
+                            console.log('No user profile found in Firestore');
+                            showProfileError('Profile data not found');
+                        }
+                    } catch (error) {
+                        console.error('Error loading profile:', error);
+                        showProfileError('Error loading profile data');
+                    }
+                } else {
+                    // User not logged in - redirect to login
+                    console.log('User not logged in, redirecting...');
+                    window.location.href = 'h-login.html';
+                }
+            });
+        }
+
+        function updateProfileFields(userProfile, user) {
+            // Build full name
+            const firstName = userProfile.firstName || '';
+            const middleInitial = userProfile.middleInitial ? `${userProfile.middleInitial}.` : '';
+            const lastName = userProfile.lastName || '';
+            const fullName = `${firstName} ${middleInitial} ${lastName}`.trim() || 'Not provided';
+
+            let noPosts = 0;
+            if (userProfile.posts) {
+                if (typeof userProfile.posts === 'number') {
+                    noPosts = userProfile.posts; // If it's already a number
+                } else if (Array.isArray(userProfile.posts)) {
+                    noPosts = userProfile.posts.length; // If it's an array, get the length
+                } else {
+                    noPosts = 0; // Default fallback
+        }
+            }
+            // Format join date
+            let joinDate = 'Not available';
+            if (userProfile.joinDate) {
+                if (userProfile.joinDate.seconds) {
+                    // Firestore timestamp
+                    joinDate = new Date(userProfile.joinDate.seconds * 1000).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                } else if (userProfile.joinDate instanceof Date) {
+                    // Regular date
+                    joinDate = userProfile.joinDate.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                }
+            }
+            
+            // Update profile fields
+            updateField('.profile-name', fullName);
+            updateField('.profile-location', userProfile.location || 'Not provided');
+            updateField('.profile-role', userProfile.role || 'Member');
+            updateField('.profile-join-date', joinDate);
+            updateField('.profile-no-posts', noPosts)
+            // If you have an alias field in your HTML, update it too
+            updateField('.profile-alias', userProfile.alias || fullName || 'Not provided');
+            
+            console.log('Profile fields updated successfully');
+        }
+
+        function updateField(selector, value) {
+            const element = document.querySelector(selector);
+            if (element) {
+                element.textContent = value;
+                element.classList.remove('loading'); // Remove loading class if present
+            } else {
+                console.warn(`Element not found: ${selector}`);
+            }
+        }
+
+        function showProfileError(message) {
+            const profileContent = document.querySelector('.profile-content');
+            if (profileContent) {
+                profileContent.innerHTML = `
+                    <div class="error-message" style="text-align: center; color: #d32f2f; padding: 20px;">
+                        <h3>Error Loading Profile</h3>
+                        <p>${message}</p>
+                        <button onclick="location.reload()" style="margin-top: 10px; padding: 8px 16px; background: #022d33; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            Retry
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Make functions globally available for debugging
+        window.populateUserProfile = populateUserProfile;
+        window.updateProfileFields = updateProfileFields;
+</script>
+</head>
+<body>
+    <div id="account-bar"></div>
+    <header class="hero_side"><div class="hero-content"><h2>Account Center</h2></div></header>
+    <div id="profile-box"></div>
+        
+
+</body>
+</html>

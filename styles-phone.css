@@ -1,0 +1,331 @@
+
+/* ---------------------------------
+   Mobile Layout Reordering
+--------------------------------- */
+
+/* Stack content in a single column */
+.blog-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 10px;
+}
+
+/* Sidebar appears ABOVE content on mobile */
+.blog-sidebar {
+  width: 80%;
+  position: relative;
+  order: 1;              /* ⬅️ sidebar first */
+  padding: 12px;
+  background: #f8f9fa;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  margin: 0 auto 15px;    /* horizontally centered */
+  margin-bottom: 50px;
+  
+}
+
+/* Blog content now comes second */
+.blog-content {
+  width: 100%;
+  order: 2;              /* ⬅️ posts after sidebar */
+}
+
+/* Adjust top spacing so sidebar doesn’t collide with hero */
+.blog-sidebar h3 {
+  margin-top: 0.8em;
+}
+
+/* Minor padding between sidebar sections */
+.search-section,
+.filters-section,
+.tags-section {
+  margin-top: 1em;
+}
+
+/* ------------------------------
+   Account Bar (Top Sticky)
+------------------------------ */
+
+
+.account-bar * {
+  font-size: 14px;
+}
+
+.account-bar {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    height: 8vh;
+    background: linear-gradient(to bottom, 
+        rgba(2, 45, 51, 0.2) 0%);
+    backdrop-filter: blur(3px);
+    border-bottom: 5px solid rgba(13, 29, 33, 1);
+    z-index: 5;
+}
+
+.account {
+    border-radius: 5px;
+    border-color: #ffffff;
+    color: black;
+    padding: 20px;
+    right: 10px;
+    position: absolute;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 1vh;
+    top: 50%;
+    transform: translateY(-50%); 
+    background-color: rgb(255, 255, 255);
+    z-index: 5;
+}
+
+
+.profile-box h1 {
+    margin: 0 0 30px 0;
+    font-size: 32px;
+    font-weight: 600;
+    text-align: center;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 15px;
+}
+
+/* ------------------------------
+   Hero / Header Area
+------------------------------ */
+.hero {
+    width: 100%;
+    height: 85vh;   
+    background: 
+        linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), /* dark overlay */
+        url("images/rains.png");
+    background-size: cover;               /* scale to fill */
+    background-position: center;          /* center the image */
+    background-repeat: no-repeat;
+    display: flex;                        /* enable flexbox for centering */
+    justify-content: center;              /* horizontal centering */
+    align-items: center;                  /* vertical centering */
+    color: white;                         /* text color (adjust if needed) */
+    text-align: center;
+    margin: 100;
+    margin-top: 8.5vh;
+}
+
+.hero-small {
+    width: 100%;
+    height: 10vh;   
+    background: 
+        linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), /* dark overlay */
+        url("images/rains.png");
+    background-size: cover;               /* scale to fill */
+    background-position: center;          /* center the image */
+    background-repeat: no-repeat;
+    display: flex;                        /* enable flexbox for centering */
+    justify-content: center;              /* horizontal centering */
+    align-items: center;                  /* vertical centering */
+    color: white;                         /* text color (adjust if needed) */
+    text-align: center;
+    margin: 100;
+    margin-top: 8.5vh;
+}
+
+.hero-content,
+.hero-small-content {
+  position: relative;
+  z-index: 2;
+  padding: 0 15px;
+}
+
+.hero-content h1 {
+  font-size: 20vw;
+  font-family: 'Space Grotesk', sans-serif; /* Apply globally */
+  color: #ffffff;
+  margin: 0;
+}
+
+.hero-content p {
+  font-size: 5vw;
+}
+
+.introduction {
+  font-size: 5vw;
+}
+
+.hero-small-content h1 {
+  font-size: 7vw;
+  font-family: 'Space Grotesk', sans-serif; /* Apply globally */
+  color: #ffffff;
+  margin: 0;
+}
+
+/* hide any decorative side images */
+.hero_side {
+  display: none !important;
+}
+
+/* ------------------------------
+   Featured & Recent Posts
+------------------------------ */
+.featured-section,
+.recent-posts-section {
+  width: 100%;
+}
+
+.featured-post-image {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.featured-post-content h2 {
+  font-size: 22px;
+}
+
+.featured-post-content p,
+.blog-post-card p {
+  font-size: 14px;
+}
+
+/* smaller cards */
+.recent-posts {
+  gap: 15px;
+}
+
+.blog-post-card {
+  padding: 15px;
+  border-radius: 6px;
+}
+
+/* reduce hover effects for touch devices */
+.blog-post-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ------------------------------
+   Buttons
+------------------------------ */
+button,
+.read-more-btn,
+.new-post-btn {
+  font-size: 14px;
+  padding: 10px 16px;
+  width: auto;
+  border-radius: 6px;
+}
+
+/* ------------------------------
+   Filtered Posts
+------------------------------ */
+#filtered-posts {
+  margin-top: 1em;
+  padding-top: 0.5em;
+}
+
+/* ------------------------------
+   Sidebar Elements
+------------------------------ */
+.search-section,
+.filters-section,
+.tags-section {
+  margin-top: 1.5em;
+}
+
+.search-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.search-box input {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.search-btn {
+  width: 100%;
+  border-radius: 6px;
+  background: #022d33;
+  color: white;
+}
+
+.clear-search-btn {
+  width: 100%;
+  border-radius: 6px;
+}
+
+/* Category filters */
+.filters-section .filter-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filters-section .filter-option label {
+  font-size: 15px;
+}
+
+/* Tag cloud wrapping */
+.tags-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+/* ------------------------------
+   Post Viewer
+------------------------------ */
+.post-viewer-overlay {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: none;
+}
+
+.post-viewer-container {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  padding: 15px 10px 60px;
+  overflow-y: auto;
+}
+
+.post-viewer-header h2 {
+  font-size: 18px;
+}
+
+.post-full-title {
+  font-size: 22px;
+  line-height: 1.3;
+}
+
+/* ------------------------------
+   Global Typography
+------------------------------ */
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.2;
+}
+
+p {
+  line-height: 1.6;
+}
+
+/* ------------------------------
+   Utility / Safe Zone
+------------------------------ */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+.no-content-message,
+.error-message {
+  padding: 20px 10px;
+  font-size: 15px;
+  text-align: center;
+}

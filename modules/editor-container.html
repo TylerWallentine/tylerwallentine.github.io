@@ -1,0 +1,82 @@
+<div class="editor-container">
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="toolbar-group">
+            <button class="toolbar-btn" data-action="bold" title="Bold (Ctrl+B)">
+                <strong>B</strong>
+            </button>
+            <button class="toolbar-btn" data-action="italic" title="Italic (Ctrl+I)">
+                <em>I</em>
+            </button>
+            <button class="toolbar-btn" data-action="underline" title="Underline (Ctrl+U)">
+                <u>U</u>
+            </button>
+        </div>
+        
+        <div class="toolbar-group">
+            <select class="font-family" title="Font Family">
+                <option value="Arial">Arial</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Courier New">Courier New</option>
+                <option value="Helvetica">Helvetica</option>
+            </select>
+            
+            <input type="color" class="color-picker" title="Text Color" value="#000000">
+        </div>
+        
+        <div class="toolbar-group">
+            <button class="toolbar-btn" data-action="bulletList" title="Bullet List">
+                • List
+            </button>
+            <button class="toolbar-btn" data-action="numberedList" title="Numbered List">
+                1. List
+            </button>
+        </div>
+        
+        <div class="toolbar-group">
+            <button class="toolbar-btn" data-action="link" title="Insert Link">
+                🔗 Link
+            </button>
+            <button class="toolbar-btn" data-action="image" title="Upload Image">
+                📷 Image
+            </button>
+        </div>
+        
+        <div class="toolbar-group">
+            <button class="toolbar-btn" data-action="markdown" title="Toggle Markdown Mode">
+                MD
+            </button>
+            <button class="toolbar-btn" data-action="latex" title="Insert LaTeX">
+                ∑ LaTeX
+            </button>
+        </div>
+        
+        <div class="toolbar-group">
+            <button class="toolbar-btn" data-action="preview" title="Toggle Preview">
+                👁 Preview
+            </button>
+            <button class="toolbar-btn" data-action="export" title="Export Content">
+                💾 Export
+            </button>
+        </div>
+    </div>
+    
+    <!-- Editor Area -->
+    <div class="editor-wrapper">
+        <div class="editor-content" contenteditable="true" id="editor" 
+                placeholder="Start writing... You can paste images directly with Ctrl+V!">
+        </div>
+        
+        <div class="preview-content" id="preview" style="display: none;">
+            <!-- Preview content will be rendered here -->
+        </div>
+    </div>
+    
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <span class="word-count">Words: 0</span>
+        <span class="char-count">Characters: 0</span>
+        <span class="mode-indicator">Rich Text Mode</span>
+    </div>
+</div>

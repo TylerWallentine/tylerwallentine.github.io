@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Project Editor</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="s-posting.css"> <!-- reuse blog styles -->
+
+  <!-- Firebase + scripts -->
+       <!-- External Dependencies -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script>
+  
+
+
+  <script type="module" src="j-firebase.js"></script>
+  <script src="j-modules.js"></script>
+  <script src="j-project-posting.js"></script>
+  <script src="functions/project-editor.js" defer></script>
+
+  <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            await ModuleLoader.loadMultipleModules([
+                { 
+                    path: 'modules/account-bar.html', 
+                    target: '#account-bar',
+                    authCallback: window.updateAccountBar  // This updates based on auth state
+                },
+                { path: 'modules/small-grid-container.html', target: '#small-grid-container' }
+            ]);
+            
+            // Any page-specific JavaScript after modules load
+            initializePageSpecificFeatures();
+        });
+        
+        function initializePageSpecificFeatures() {
+            // Add event listeners, initialize components, etc.
+            console.log('Main page modules loaded and initialized');
+        }
+    </script>
+</head>
+
+
+<body>
+  <div id="account-bar"></div>
+  <header class="hero-small">
+    <div class="hero-small-content">
+      <h1>Edit Project</h1>
+    </div>
+  </header>
+  <div id="small-grid-container"></div>
+  <main class="editor-layout">
+    <!-- Project Metadata -->
+    <div class="project-metadata">
+      <div class="project-fields">
+
+      
+        <div class="meta-group">
+          <label for="project-title">Title</label>
+          <input id="project-title" type="text">
+        </div>
+        
+        <div class="meta-group">
+          <input id="project-featured" type="checkbox">
+          <label for="project-featured">Featured</label>
+        </div>
+      </div>
+      <div class="project-actions">
+        <button id="save-project-btn" class="save-btn">Save</button>
+        <button id="publish-project-btn" class="publish-btn">Publish</button>
+      </div>
+
+      <div id="save-status" class="save-status"></div>
+      
+    </div>
+
+    <div>
+      <label for="project-excerpt">Excerpt</label>
+      <textarea id="project-excerpt"></textarea>
+    </div>
+
+    <div class="metadata-group">
+      <label for="project-tags">Tags</label>
+      <div class="tags-input-container">
+        <input type="text" id="project-tags" placeholder="Add tags (press Enter)">
+        <button type="button" id="add-tag-btn">Add Tag</button>
+      </div>
+      <div class="tags-display" id="project-tags-display"></div>
+  </div>
+
+
+    <!-- Phases -->
+    <section class="project-phases">
+      <div id="phases-container"></div>
+      <button id="add-phase-btn">+ Add Phase</button>
+    </section>
+  </main>
+</body>
+</html>

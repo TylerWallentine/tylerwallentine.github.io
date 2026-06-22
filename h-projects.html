@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script type="module" src="j-firebase.js"></script>
+    <script src="j-modules.js"></script>
+    <script src="functions/project-loader.js"></script>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            await ModuleLoader.loadMultipleModules([
+                { 
+                    path: 'modules/account-bar.html', 
+                    target: '#account-bar',
+                    authCallback: window.updateAccountBar  // This updates based on auth state
+                },
+                { path: 'modules/small-grid-container.html', target: '#small-grid-container' }
+            ]);
+            
+            // Any page-specific JavaScript after modules load
+            initializePageSpecificFeatures();
+        });
+        
+        function initializePageSpecificFeatures() {
+            // Add event listeners, initialize components, etc.
+            console.log('Main page modules loaded and initialized');
+        }
+    </script>
+
+    <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    function waitForProjectFunctions() {
+      if (window.projectFunctionsReady && window.loadProjects) {
+        window.loadProjects();
+      } else {
+        setTimeout(waitForProjectFunctions, 500);
+      }
+    }
+    waitForProjectFunctions();
+  });
+</script>
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", async () => {
+  const auth = window.firebaseAuth;
+
+  if (!auth) return;
+
+  auth.onAuthStateChanged(async (user) => {
+    if (user && user.email === "wallentinetyler@gmail.com") {
+      const container = document.getElementById("new-project-btn-container");
+
+      if (container) {
+        const btn = document.createElement("button");
+        btn.textContent = "+ New Project";
+        btn.className = "new-project-btn";
+        
+        btn.addEventListener("click", async () => {
+          try {
+            const db = window.firestoreDb;
+            const projectsRef = window.fsCollection(db, "projects");
+
+            const docRef = await window.fsAddDoc(projectsRef, {
+              title: "Untitled Project",
+              createdAt: new Date(),
+              owner: user.uid,
+              featured: false,
+              tags: [],
+              excerpt: "",
+            });
+
+            // Redirect to the editor with new project ID
+            window.location.href = `h-project-editor.html?id=${docRef.id}`;
+          } catch (err) {
+            console.error("Error creating new project:", err);
+            alert("Failed to create new project. Check console for details.");
+          }
+        });
+
+        container.appendChild(btn);
+      }
+    }
+  });
+});
+
+</script>
+
+</head>
+<body>
+  <div id="account-bar"></div>
+  <header class="hero-small">
+    <div class="hero-small-content">
+      <h1>Projects</h1>
+    </div>
+  </header>
+  <div id="small-grid-container"></div>
+
+    <!-- Projects Filter Bar -->
+    <!-- Projects Filter Bar -->
+<section class="projects-filter-bar">
+  <div class="filters-wrapper">
+    <div id="new-project-btn-container" class="new-project-container"></div> <!-- Button goes here -->
+
+    <label>
+      <input type="checkbox" value="Design"> Design
+    </label>
+    <label>
+      <input type="checkbox" value="Research"> Research
+    </label>
+    <label>
+      <input type="checkbox" value="Prototype"> Prototype
+    </label>
+    <label>
+      <input type="checkbox" value="Simulation"> Simulation
+    </label>
+    <label>
+      <input type="checkbox" value="Control Systems"> Control Systems
+    </label>
+  </div>
+  
+</section>
+
+
+    
+  <!-- Dynamic content area -->
+  <div id="page-content">
+    <main class="projects-layout">
+    <section class="featured-section">
+        <h2 class="section-title">Featured Project</h2>
+        <div id="featured-project" class="featured-project">
+        <div class="loading-message">Loading featured project...</div>
+        </div>
+    </section>
+
+    <section class="recent-projects-section">
+        <h2 class="section-title">Recent Projects</h2>
+        <div id="recent-projects" class="recent-projects">
+        <div class="loading-message">Loading recent projects...</div>
+        </div>
+    </section>
+
+    <!-- 🔹 Project Reader Modal -->
+  <div id="project-modal" class="project-modal">
+    <div class="project-modal-content">
+      <button id="close-project-modal" class="close-btn">✕</button>
+      <h2 id="modal-project-title"></h2>
+      <p id="modal-project-excerpt"></p>
+      <img id="modal-project-image" class="featured-project-image" alt="">
+      <div id="modal-project-phases" class="project-phases-scroll"></div>
+    </div>
+  </div>
+
+
+    <!-- Collapsible Tags Sidebar -->
+<div class="tags-sidebar collapsed" id="tagsSidebar">
+  <div class="tags-toggle" id="tagsToggle">🏷 Tags</div>
+  <div class="tags-content">
+    <h3>Search by Tag</h3>
+    <ul id="tagsList">
+      <li><button>Design</button></li>
+      <li><button>Research</button></li>
+      <li><button>Prototype</button></li>
+      <li><button>Simulation</button></li>
+      <li><button>Control Systems</button></li>
+    </ul>
+  </div>
+</div>
+
+    </main>
+  </div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const sidebar = document.getElementById("tagsSidebar");
+    const toggle = document.getElementById("tagsToggle");
+
+    if (toggle && sidebar) {
+      toggle.addEventListener("click", () => {
+        sidebar.classList.toggle("collapsed");
+      });
+    }
+  });
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+  const modal = document.getElementById("project-modal");
+  const closeBtn = document.getElementById("close-project-modal");
+
+  const titleEl = document.getElementById("modal-project-title");
+  const excerptEl = document.getElementById("modal-project-excerpt");
+  const imageEl = document.getElementById("modal-project-image");
+  const phasesContainer = document.getElementById("modal-project-phases");
+
+  // 🔹 Handle "Read More" clicks
+  document.body.addEventListener("click", async (e) => {
+    if (e.target.classList.contains("read-more-btn")) {
+      const projectId = e.target.dataset.projectId;
+      await openProjectModal(projectId);
+    }
+  });
+
+  // 🔹 Close modal
+  closeBtn.addEventListener("click", () => (modal.style.display = "none"));
+  window.addEventListener("click", (e) => {
+    if (e.target === modal) modal.style.display = "none";
+  });
+
+  // 🔹 Load and show project data
+  async function openProjectModal(projectId) {
+    const db = window.firestoreDb;
+    const projectRef = window.fsDoc(db, "projects", projectId);
+    const projectSnap = await window.fsGetDoc(projectRef);
+
+    if (!projectSnap.exists()) {
+      alert("Project not found.");
+      return;
+    }
+
+    const project = projectSnap.data();
+
+    titleEl.textContent = project.title || "Untitled Project";
+    excerptEl.textContent = project.excerpt || "";
+    imageEl.src = project.previewImage || "";
+    imageEl.style.display = project.previewImage ? "block" : "none";
+
+    // Clear previous phases
+    phasesContainer.innerHTML = "<p>Loading phases...</p>";
+
+    // 🔹 Load phases
+    const phasesRef = window.fsCollection(projectRef, "phases");
+    const phaseSnaps = await window.fsGetDocs(phasesRef);
+
+    if (phaseSnaps.empty) {
+      phasesContainer.innerHTML = "<p><em>No phases available.</em></p>";
+    } else {
+      phasesContainer.innerHTML = "";
+      phaseSnaps.forEach((doc) => {
+        const phase = doc.data();
+        const div = document.createElement("div");
+        div.className = "project-phase";
+        div.innerHTML = `
+          <h3>${phase.title || "Untitled Phase"}</h3>
+          <div>${phase.content || ""}</div>
+        `;
+        phasesContainer.appendChild(div);
+      });
+    }
+
+    modal.style.display = "flex";
+  }
+});
+
+
+</script>
+</body>
+</html>
+
+
+</body>
+
+</html>
