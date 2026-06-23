@@ -73,6 +73,7 @@
               title: "Untitled Project",
               createdAt: new Date(),
               owner: user.uid,
+              published: false,
               featured: false,
               tags: [],
               excerpt: "",
@@ -82,7 +83,7 @@
             window.location.href = `h-project-editor.html?id=${docRef.id}`;
           } catch (err) {
             console.error("Error creating new project:", err);
-            alert("Failed to create new project. Check console for details.");
+            alert("Failed to create new project: " + (err.code || err.message || err));
           }
         });
 
@@ -217,55 +218,59 @@
 
   // 🔹 Load and show project data
   async function openProjectModal(projectId) {
-    const db = window.firestoreDb;
-    const projectRef = window.fsDoc(db, "projects", projectId);
-    const projectSnap = await window.fsGetDoc(projectRef);
+    try {
+      const db = window.firestoreDb;
+      const projectRef = window.fsDoc(db, "projects", projectId);
+      const projectSnap = await window.fsGetDoc(projectRef);
 
-    if (!projectSnap.exists()) {
-      alert("Project not found.");
-      return;
+      if (!projectSnap.exists()) {
+        alert("Project not found.");
+        return;
+      }
+
+      const project = projectSnap.data();
+
+      titleEl.textContent = project.title || "Untitled Project";
+      excerptEl.textContent = project.excerpt || "";
+      imageEl.src = project.previewImage || "";
+      imageEl.style.display = project.previewImage ? "block" : "none";
+
+      // Show the modal immediately so a phase/permission error can't hide it
+      phasesContainer.innerHTML = "<p>Loading phases...</p>";
+      modal.style.display = "flex";
+
+      // 🔹 Load phases (failure here must NOT prevent the modal from showing)
+      try {
+        const phasesRef = window.fsCollection(projectRef, "phases");
+        const phaseSnaps = await window.fsGetDocs(phasesRef);
+
+        if (phaseSnaps.empty) {
+          phasesContainer.innerHTML = "<p><em>No phases available.</em></p>";
+        } else {
+          phasesContainer.innerHTML = "";
+          phaseSnaps.forEach((doc) => {
+            const phase = doc.data();
+            const div = document.createElement("div");
+            div.className = "project-phase";
+            div.innerHTML = `
+              <h3>${phase.title || "Untitled Phase"}</h3>
+              <div>${phase.content || ""}</div>
+            `;
+            phasesContainer.appendChild(div);
+          });
+        }
+      } catch (phaseErr) {
+        console.error("Error loading phases:", phaseErr);
+        phasesContainer.innerHTML = "<p><em>Couldn't load phases: " + (phaseErr.code || phaseErr.message || phaseErr) + "</em></p>";
+      }
+    } catch (err) {
+      console.error("Error opening project:", err);
+      alert("Couldn't open project: " + (err.code || err.message || err));
     }
-
-    const project = projectSnap.data();
-
-    titleEl.textContent = project.title || "Untitled Project";
-    excerptEl.textContent = project.excerpt || "";
-    imageEl.src = project.previewImage || "";
-    imageEl.style.display = project.previewImage ? "block" : "none";
-
-    // Clear previous phases
-    phasesContainer.innerHTML = "<p>Loading phases...</p>";
-
-    // 🔹 Load phases
-    const phasesRef = window.fsCollection(projectRef, "phases");
-    const phaseSnaps = await window.fsGetDocs(phasesRef);
-
-    if (phaseSnaps.empty) {
-      phasesContainer.innerHTML = "<p><em>No phases available.</em></p>";
-    } else {
-      phasesContainer.innerHTML = "";
-      phaseSnaps.forEach((doc) => {
-        const phase = doc.data();
-        const div = document.createElement("div");
-        div.className = "project-phase";
-        div.innerHTML = `
-          <h3>${phase.title || "Untitled Phase"}</h3>
-          <div>${phase.content || ""}</div>
-        `;
-        phasesContainer.appendChild(div);
-      });
-    }
-
-    modal.style.display = "flex";
   }
 });
 
 
 </script>
 </body>
-</html>
-
-
-</body>
-
 </html>
