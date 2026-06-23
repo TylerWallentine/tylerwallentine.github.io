@@ -18,6 +18,7 @@ echo.
 echo === Publishing... ===
 git add -A
 git commit -m "%MSG%"
+git pull --rebase
 git push
 
 echo.
