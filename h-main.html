@@ -30,8 +30,104 @@
         });
         
         function initializePageSpecificFeatures() {
-            // Add event listeners, initialize components, etc.
             console.log('Main page modules loaded and initialized');
+            loadHomeBlogPreview();
+        }
+
+        // ----- Home page blog preview (featured + recent) -----
+        function loadHomeBlogPreview() {
+            // Wait until Firebase (from j-firebase.js) is ready
+            if (!window.firestoreDb || !window.fsGetDocs) {
+                return setTimeout(loadHomeBlogPreview, 200);
+            }
+
+            const db = window.firestoreDb;
+            const featuredEl = document.getElementById('home-featured-post');
+            const recentEl = document.getElementById('home-recent-posts');
+
+            function escapeHtml(str) {
+                return String(str == null ? '' : str)
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            }
+
+            async function run() {
+                let featuredId = null;
+                // --- Featured post ---
+                try {
+                    const featuredQuery = window.fsQuery(
+                        window.fsCollection(db, 'posts'),
+                        window.fsWhere('published', '==', true),
+                        window.fsWhere('featured', '==', true),
+                        window.fsOrderBy('createdAt', 'desc'),
+                        window.fsLimit(1)
+                    );
+                    const snap = await window.fsGetDocs(featuredQuery);
+                    if (snap.empty) {
+                        featuredEl.innerHTML = `
+                            <div class="no-content-message" style="padding:30px;">
+                                <h3>No featured post yet</h3>
+                                <p>Check back soon for highlighted content.</p>
+                            </div>`;
+                    } else {
+                        const post = { id: snap.docs[0].id, ...snap.docs[0].data() };
+                        featuredId = post.id;
+                        renderFeatured(post);
+                    }
+                } catch (e) {
+                    console.error('Home featured load failed:', e);
+                    featuredEl.innerHTML = `<div class="error-message" style="padding:30px;">
+                        <h3>Couldn't load featured post</h3></div>`;
+                }
+
+                // --- Recent posts (sidebar list) ---
+                try {
+                    const recentQuery = window.fsQuery(
+                        window.fsCollection(db, 'posts'),
+                        window.fsWhere('published', '==', true),
+                        window.fsOrderBy('createdAt', 'desc'),
+                        window.fsLimit(6)
+                    );
+                    const snap = await window.fsGetDocs(recentQuery);
+                    let posts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    // Don't repeat the featured post; cap at 5
+                    posts = posts.filter(p => p.id !== featuredId).slice(0, 5);
+
+                    if (!posts.length) {
+                        recentEl.innerHTML = `<p class="loading-message">No posts yet.</p>`;
+                    } else {
+                        recentEl.innerHTML = posts.map(p => {
+                            const d = p.createdAt?.toDate?.() || new Date();
+                            return `
+                                <a class="home-recent-item" href="h-blog.html?post=${encodeURIComponent(p.id)}">
+                                    <span class="home-recent-title">${escapeHtml(p.title || 'Untitled')}</span>
+                                    <span class="home-recent-date">${d.toLocaleDateString()}</span>
+                                </a>`;
+                        }).join('');
+                    }
+                } catch (e) {
+                    console.error('Home recent load failed:', e);
+                    recentEl.innerHTML = `<p class="error-message">Couldn't load recent posts.</p>`;
+                }
+            }
+
+            function renderFeatured(post) {
+                const d = post.createdAt?.toDate?.() || new Date();
+                const tags = (post.tags || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('');
+                featuredEl.innerHTML = `
+                    <div class="featured-post-content">
+                        ${post.previewImage ? `<img src="${escapeHtml(post.previewImage)}" alt="Preview" class="featured-post-image">` : ''}
+                        <div class="featured-post-meta">
+                            <span class="post-date">${d.toLocaleDateString()}</span>
+                            <span class="featured-badge">Featured</span>
+                        </div>
+                        <h2>${escapeHtml(post.title || 'Untitled')}</h2>
+                        <p>${escapeHtml(post.excerpt || 'No excerpt available.')}</p>
+                        <div class="post-tags">${tags}</div>
+                        <a class="read-more-btn read-more-link" href="h-blog.html?post=${encodeURIComponent(post.id)}">Read More</a>
+                    </div>`;
+            }
+
+            run();
         }
     </script>
 
@@ -41,9 +137,23 @@
     <div id="hero-bar"></div>
     <div id="grid-container"></div>
 
-    
-    
-    
+    <!-- Blog preview: featured post + recent posts sidebar -->
+    <section class="home-blog-layout blog-layout">
+        <div class="blog-content">
+            <h2 class="section-title">Featured Post</h2>
+            <div id="home-featured-post" class="featured-post">
+                <div class="loading-message" style="padding:30px;">Loading featured post...</div>
+            </div>
+        </div>
+
+        <aside class="blog-sidebar home-recent-sidebar">
+            <h3>Recent Posts</h3>
+            <div id="home-recent-posts" class="home-recent-list">
+                <p class="loading-message">Loading...</p>
+            </div>
+            <a href="h-blog.html" class="home-view-all">View all posts &rarr;</a>
+        </aside>
+    </section>
     
 </body>
 

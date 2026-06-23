@@ -1975,3 +1975,79 @@ label[for="project-tags"] {
   margin: 0;
   line-height: 1.5;
 }
+
+/* ===== Home page blog preview (featured + recent posts sidebar) ===== */
+.home-blog-layout {
+  align-items: flex-start;
+}
+
+/* Make the read-more button work as an anchor link */
+.read-more-link {
+  display: inline-block;
+  text-decoration: none;
+}
+
+/* Recent posts list in the home sidebar (compact "smaller navbar") */
+.home-recent-sidebar {
+  top: 0;
+}
+
+.home-recent-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.home-recent-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 6px;
+  border-bottom: 1px solid #e5e5e5;
+  text-decoration: none;
+  color: #022d33;
+  transition: background 0.15s ease, padding-left 0.15s ease;
+}
+
+.home-recent-item:last-child {
+  border-bottom: none;
+}
+
+.home-recent-item:hover {
+  background: rgba(2, 45, 51, 0.06);
+  padding-left: 12px;
+}
+
+.home-recent-title {
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.home-recent-date {
+  font-size: 12px;
+  color: #666;
+}
+
+.home-view-all {
+  display: inline-block;
+  margin-top: 16px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #022d33;
+  text-decoration: none;
+}
+
+.home-view-all:hover {
+  text-decoration: underline;
+}
+
+/* Stack the layout on small screens */
+@media only screen and (max-width: 768px) {
+  .home-blog-layout {
+    flex-direction: column;
+  }
+  .home-blog-layout .blog-content,
+  .home-blog-layout .blog-sidebar {
+    width: 100%;
+  }
+}
