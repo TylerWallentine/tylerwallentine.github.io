@@ -70,7 +70,7 @@ async init() {
 
   updateMetadata() {
     if (!this.hasUnsavedChanges) {
-      console.log("🟡 Metadata changed — marking unsaved.");
+      console.log("🟡 Metadata changed - marking unsaved.");
     }
     this.hasUnsavedChanges = true;
   }
@@ -302,80 +302,38 @@ renderPhase(phaseId, data) {
     const title = this.titleInput.value.trim() || "Untitled Project";
     const excerpt = this.excerptInput.value.trim();
     const featured = this.featuredCheckbox.checked;
-    const publish = this.published
     const tags = this.tags;
-    this.hasUnsavedChanges = false;
-    console.log("✅ Project saved — unsaved changes cleared.");
 
     try {
       const user = window.firebaseAuth.currentUser;
-
       if (!user) throw new Error("Not logged in");
 
-      const token = await user.getIdToken();
-      
-      const projectData = {
-        title,
-        excerpt,
-        tags,
-        featured,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        confirmed: true,
-        published: publish || false
-      };
-
-      const res = await fetch("http://192.168.0.195:8080/api/project", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(projectData)
-      });
-
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
-      const data = await res.json();
-      console.log("✅ Project saved:", data);
-      this.showSaveStatus("✅ Project saved!");
-      this.hasUnsavedChanges = false;
-    } catch (err) {
-      console.error("Error saving project:", err);
-      this.showSaveStatus("❌ Failed to save project.", true);
-    }
-
       if (!this.projectId) {
-        // 🆕 First save → create project
-        const projectData = {
+        // 🆕 First save → create the project directly in Firestore
+        const projectsRef = window.fsCollection(window.firestoreDb, "projects");
+        const docRef = await window.fsAddDoc(projectsRef, {
           title,
           excerpt,
           tags,
           featured,
-          confirmed: true,      // ✅ mark as confirmed after first save
-          published: false,     // ✅ default
+          owner: user.uid,
+          confirmed: true,
+          published: false,
           createdAt: new Date(),
-          updatedAt: new Date(),
-          confirmed: false,
-          published: publish || false // if `publish` is true (from your button), set it; else false
-        };
-
-        const projectsRef = window.fsCollection(window.firestoreDb, "projects");
-        const docRef = await window.fsAddDoc(projectsRef, projectData);
+          updatedAt: new Date()
+        });
         this.projectId = docRef.id;
         this.projectRef = docRef;
-
         this.showSaveStatus("✅ Project created and saved!");
       } else {
-        // 📝 Update existing project
+        // 📝 Update existing project (publish state is managed by publishProject)
         await window.fsUpdateDoc(this.projectRef, {
           title,
           excerpt,
           tags,
           featured,
-          updatedAt: new Date(),
           confirmed: true,
-          published: publish || false // if `publish` is true (from your button), set it; else false
-
+          updatedAt: new Date()
         });
         this.showSaveStatus("💾 Project updated!");
       }
@@ -383,12 +341,11 @@ renderPhase(phaseId, data) {
       this.hasUnsavedChanges = false;
     } catch (err) {
       console.error("Error saving project:", err);
-      this.showSaveStatus("❌ Failed to save project.", true);
+      this.showSaveStatus("❌ Failed to save project: " + (err.code || err.message || err), true);
     }
-  
+  }
 
-
-setupUnloadWarning() {
+  setupUnloadWarning() {
   window.addEventListener("beforeunload", (e) => {
     console.log("⚠️ beforeunload triggered");
 
@@ -399,7 +356,7 @@ setupUnloadWarning() {
 
     // 🔹 1️⃣ Case: new (unconfirmed) project with unsaved changes
     if (!isConfirmed && hasUnsaved) {
-      console.log("⚠️ Unconfirmed project with unsaved changes — prompting user.");
+      console.log("⚠️ Unconfirmed project with unsaved changes - prompting user.");
 
       // ✅ mark for deletion on next load
       localStorage.setItem("deleteDraft", this.projectId);
@@ -413,18 +370,18 @@ setupUnloadWarning() {
 
     // 🔹 2️⃣ Case: confirmed project but unsaved edits
     if (hasUnsaved) {
-      console.log("⚠️ Confirmed project with unsaved edits — prompting user.");
+      console.log("⚠️ Confirmed project with unsaved edits - prompting user.");
       e.preventDefault();
       e.returnValue = "";
       return;
     }
 
     // 🔹 3️⃣ Safe exit
-    console.log("✅ Safe to exit — no unsaved changes.");
+    console.log("✅ Safe to exit - no unsaved changes.");
   });
   }
 
-  
+
 
 async publishProject() {
     if (!this.projectRef) {
