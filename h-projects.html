@@ -230,6 +230,7 @@
   document.body.addEventListener("click", async (e) => {
     if (e.target.classList.contains("read-more-btn")) {
       const projectId = e.target.dataset.projectId;
+      if (!projectId) return; // ignore buttons without a project id (e.g. Edit)
       await openProjectModal(projectId);
     }
   });

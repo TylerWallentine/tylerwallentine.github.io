@@ -46,9 +46,13 @@ async init() {
 
     const saveBtn = document.getElementById("save-project-btn");
     const publishBtn = document.getElementById("publish-project-btn");
+    const unpublishBtn = document.getElementById("unpublish-project-btn");
+    const deleteBtn = document.getElementById("delete-project-btn");
 
     if (saveBtn) saveBtn.addEventListener("click", () => this.saveProject());
     if (publishBtn) publishBtn.addEventListener("click", () => this.publishProject());
+    if (unpublishBtn) unpublishBtn.addEventListener("click", () => this.unpublishProject());
+    if (deleteBtn) deleteBtn.addEventListener("click", () => this.deleteProject());
 
     [this.titleInput, this.excerptInput, this.featuredCheckbox].forEach(el => {
       if (el) el.addEventListener("input", () => this.hasUnsavedChanges = true);
@@ -469,6 +473,53 @@ async publishProject() {
     } catch (err) {
       console.error("Error publishing project:", err);
       this.showSaveStatus("❌ Failed to publish project.", true);
+    }
+  }
+
+  async unpublishProject() {
+    if (!this.projectRef) {
+      alert("Please save the project before unpublishing.");
+      return;
+    }
+
+    try {
+      await window.fsUpdateDoc(this.projectRef, {
+        published: false,
+        updatedAt: new Date()
+      });
+      this.showSaveStatus("📥 Project unpublished (now a draft).");
+    } catch (err) {
+      console.error("Error unpublishing project:", err);
+      this.showSaveStatus("❌ Failed to unpublish project.", true);
+    }
+  }
+
+  async deleteProject() {
+    if (!this.projectRef) {
+      alert("Nothing to delete yet.");
+      return;
+    }
+    if (!confirm("Delete this project and all of its phases? This cannot be undone.")) return;
+
+    try {
+      // Delete all phases first (subcollections aren't removed automatically)
+      const phaseSnap = await window.fsGetDocs(this.phasesRef);
+      await Promise.all(
+        phaseSnap.docs.map(d =>
+          window.fsDeleteDoc(window.fsDoc(this.phasesRef, d.id))
+        )
+      );
+
+      // Then delete the project document
+      await window.fsDeleteDoc(this.projectRef);
+
+      // Avoid the unsaved-changes prompt, then return to the projects page
+      this.hasUnsavedChanges = false;
+      this.showSaveStatus("🗑️ Project deleted.");
+      window.location.href = "h-projects.html";
+    } catch (err) {
+      console.error("Error deleting project:", err);
+      this.showSaveStatus("❌ Failed to delete project.", true);
     }
   }
 }
