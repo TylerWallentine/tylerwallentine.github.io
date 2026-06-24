@@ -78,23 +78,78 @@ async init() {
 
   async loadPhases() {
     const snap = await window.fsGetDocs(this.phasesRef);
-    snap.forEach(doc => {
-      this.renderPhase(doc.id, doc.data());
-    });
+    let phases = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (phases.length === 0) return;
+
+    const anyHasOrder = phases.some(p => typeof p.order === "number");
+
+    if (!anyHasOrder) {
+      // First-time migration: flip the previous (arbitrary) default order,
+      // then assign explicit order indices so it's stable & editable.
+      phases.reverse();
+      phases.forEach((p, i) => { p.order = i; });
+      await Promise.all(phases.map(p =>
+        window.fsUpdateDoc(window.fsDoc(this.phasesRef, p.id), { order: p.order })
+          .catch(err => console.warn("Phase order migration failed:", err))
+      ));
+    } else {
+      // Give any phase missing an order a value at the end, then sort.
+      let maxOrder = Math.max(-1, ...phases
+        .filter(p => typeof p.order === "number")
+        .map(p => p.order));
+      phases.forEach(p => { if (typeof p.order !== "number") p.order = ++maxOrder; });
+      phases.sort((a, b) => a.order - b.order);
+    }
+
+    this.phasesContainer.innerHTML = "";
+    phases.forEach(p => this.renderPhase(p.id, p));
   }
 
   async addPhase() {
+    // New phases go to the end of the list.
+    const order = this.phasesContainer.querySelectorAll(".phase").length;
     const docRef = await window.fsAddDoc(this.phasesRef, {
       title: "Untitled Phase",
       content: "",
+      order,
       createdAt: new Date()
     });
-    this.renderPhase(docRef.id, { title: "Untitled Phase", content: "" });
+    this.renderPhase(docRef.id, { title: "Untitled Phase", content: "", order });
+  }
+
+  // Move a phase up (dir = -1) or down (dir = +1) and persist the new order.
+  async movePhase(phaseDiv, dir) {
+    const sibling = dir < 0
+      ? phaseDiv.previousElementSibling
+      : phaseDiv.nextElementSibling;
+    if (!sibling || !sibling.classList.contains("phase")) return; // already at edge
+
+    if (dir < 0) {
+      this.phasesContainer.insertBefore(phaseDiv, sibling);
+    } else {
+      this.phasesContainer.insertBefore(sibling, phaseDiv);
+    }
+    await this.persistPhaseOrder();
+  }
+
+  // Write the current DOM order of phases back to Firestore as `order` values.
+  async persistPhaseOrder() {
+    const phaseDivs = [...this.phasesContainer.querySelectorAll(".phase")];
+    try {
+      await Promise.all(phaseDivs.map((div, i) =>
+        window.fsUpdateDoc(window.fsDoc(this.phasesRef, div.dataset.phaseId), { order: i })
+      ));
+      this.showSaveStatus("↕ Phase order updated");
+    } catch (err) {
+      console.error("Error saving phase order:", err);
+      this.showSaveStatus("Failed to save order", true);
+    }
   }
 
 renderPhase(phaseId, data) {
     const phaseDiv = document.createElement("div");
     phaseDiv.className = "phase";
+    phaseDiv.dataset.phaseId = phaseId;
 
     // Phase title (outside box)
     const titleEl = document.createElement("h3");
@@ -124,12 +179,27 @@ renderPhase(phaseId, data) {
     deleteBtn.textContent = "Delete";
     deleteBtn.className = "delete-btn";
 
+    // Reorder controls
+    const moveUpBtn = document.createElement("button");
+    moveUpBtn.type = "button";
+    moveUpBtn.textContent = "↑";
+    moveUpBtn.title = "Move phase up";
+    moveUpBtn.className = "move-btn move-up-btn";
+
+    const moveDownBtn = document.createElement("button");
+    moveDownBtn.type = "button";
+    moveDownBtn.textContent = "↓";
+    moveDownBtn.title = "Move phase down";
+    moveDownBtn.className = "move-btn move-down-btn";
+
+    moveUpBtn.addEventListener("click", () => this.movePhase(phaseDiv, -1));
+    moveDownBtn.addEventListener("click", () => this.movePhase(phaseDiv, 1));
+
+    buttonRow.appendChild(moveUpBtn);
+    buttonRow.appendChild(moveDownBtn);
     buttonRow.appendChild(editBtn);
     buttonRow.appendChild(saveBtn);
     buttonRow.appendChild(deleteBtn);
-
-    buttonRow.appendChild(editBtn);
-    buttonRow.appendChild(saveBtn);
 
     phaseDiv.appendChild(editorContainer);
     phaseDiv.appendChild(buttonRow);
