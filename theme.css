@@ -1,0 +1,132 @@
+/* ============================================================
+   theme.css — Design tokens + modern base
+   Vapor Rain (Tyler Wallentine) — v2 revamp
+   Keeps the existing teal/ink palette & Space Grotesk type,
+   but adds tokens, a fluid type scale, and a clean base.
+   ============================================================ */
+
+:root {
+  /* ---- Brand palette (unchanged hues) ---- */
+  --color-primary:        #022d33;  /* deep teal */
+  --color-primary-hover:  #034d5a;  /* lighter teal */
+  --color-ink:            #0d1d21;  /* near-black teal */
+  --color-accent:         #617d61;  /* sage hover */
+  --color-accent-strong:  #4f6b4f;
+
+  /* ---- Surfaces & text ---- */
+  --color-bg:             #ffffff;
+  --color-surface:        #ffffff;
+  --color-surface-alt:    #f6f8f8;
+  --color-surface-dark:   #252525;
+  --color-border:         #e5e7e7;
+  --color-text:           #16282b;
+  --color-text-muted:     #5f6c6e;
+  --color-on-dark:        #ffffff;
+  --color-on-dark-muted:  rgba(255, 255, 255, 0.75);
+
+  /* ---- Feedback ---- */
+  --color-success:        #1f7a4d;
+  --color-error:          #b3261e;
+
+  /* ---- Typography ---- */
+  --font-sans: 'Space Grotesk', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  /* Fluid type scale (min → max via viewport) */
+  --fs-300: clamp(0.80rem, 0.76rem + 0.20vw, 0.90rem);
+  --fs-400: clamp(0.95rem, 0.90rem + 0.25vw, 1.10rem);
+  --fs-500: clamp(1.15rem, 1.05rem + 0.50vw, 1.40rem);
+  --fs-600: clamp(1.45rem, 1.20rem + 1.10vw, 2.10rem);
+  --fs-700: clamp(2.00rem, 1.50rem + 2.20vw, 3.25rem);
+  --fs-900: clamp(2.75rem, 1.80rem + 4.60vw, 5.50rem);
+
+  --lh-tight: 1.15;
+  --lh-snug:  1.35;
+  --lh-base:  1.6;
+
+  /* ---- Spacing scale ---- */
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: 1.5rem;
+  --space-4: 2rem;
+  --space-5: 2.5rem;
+  --space-6: 3rem;
+  --space-8: 4rem;
+
+  /* ---- Radii ---- */
+  --radius-sm: 8px;
+  --radius:    12px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  /* ---- Shadows (tinted with brand) ---- */
+  --shadow-sm: 0 1px 2px rgba(2, 45, 51, 0.06), 0 1px 3px rgba(2, 45, 51, 0.08);
+  --shadow:    0 6px 24px rgba(2, 45, 51, 0.10);
+  --shadow-lg: 0 16px 48px rgba(2, 45, 51, 0.18);
+
+  /* ---- Motion ---- */
+  --transition-fast: 0.15s ease;
+  --transition:      0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ---- Layout ---- */
+  --header-h: 4rem;          /* top account bar height */
+  --content-max: 1200px;
+}
+
+/* ---- Modern, predictable box model ---- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+/* Don't let anchored content hide under the fixed top bar */
+:target {
+  scroll-margin-top: calc(var(--header-h) + 1rem);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--fs-400);
+  line-height: var(--lh-base);
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Accessible focus ring for keyboard users */
+:focus-visible {
+  outline: 3px solid var(--color-primary-hover);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Subtle, reusable entrance animation */
+@keyframes vr-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
