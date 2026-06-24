@@ -155,6 +155,7 @@
   <div id="project-modal" class="project-modal">
     <div class="project-modal-content">
       <button id="close-project-modal" class="close-btn">✕</button>
+      <button id="edit-project-btn" class="read-more-btn" style="display:none;">✏ Edit Project</button>
       <h2 id="modal-project-title"></h2>
       <p id="modal-project-excerpt"></p>
       <img id="modal-project-image" class="featured-project-image" alt="">
@@ -203,6 +204,27 @@
   const excerptEl = document.getElementById("modal-project-excerpt");
   const imageEl = document.getElementById("modal-project-image");
   const phasesContainer = document.getElementById("modal-project-phases");
+  const editBtn = document.getElementById("edit-project-btn");
+
+  // Is the signed-in user allowed to edit? (admin email OR role "editor")
+  async function isCurrentUserEditor() {
+    const user = window.firebaseAuth?.currentUser;
+    if (!user) return false;
+    if (user.email === "wallentinetyler@gmail.com") return true;
+    try {
+      const snap = await window.fsGetDoc(window.fsDoc(window.firestoreDb, "users", user.uid));
+      return snap.exists() && (snap.data().role || "").toLowerCase() === "editor";
+    } catch (e) {
+      console.warn("Editor check failed:", e);
+      return false;
+    }
+  }
+
+  // Re-open the currently viewed project in the editor
+  editBtn.addEventListener("click", () => {
+    const id = modal.dataset.projectId;
+    if (id) window.location.href = `h-project-editor.html?id=${encodeURIComponent(id)}`;
+  });
 
   // 🔹 Handle "Read More" clicks
   document.body.addEventListener("click", async (e) => {
@@ -237,9 +259,18 @@
       imageEl.src = project.previewImage || "";
       imageEl.style.display = project.previewImage ? "block" : "none";
 
+      // Remember which project is open (used by the Edit button)
+      modal.dataset.projectId = projectId;
+
       // Show the modal immediately so a phase/permission error can't hide it
       phasesContainer.innerHTML = "<p>Loading phases...</p>";
       modal.style.display = "flex";
+
+      // Show the Edit button only for editors
+      editBtn.style.display = "none";
+      isCurrentUserEditor().then((ok) => {
+        editBtn.style.display = ok ? "inline-block" : "none";
+      });
 
       // 🔹 Load phases (failure here must NOT prevent the modal from showing)
       try {
