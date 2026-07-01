@@ -3,9 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="theme.css">
     <link rel="stylesheet" href="styles.css">   
+    <link rel="stylesheet" href="modern.css">
     <link rel="stylesheet" href="styles-phone.css" media="only screen and (max-width: 768px)">
+    <link rel="stylesheet" href="newsletter.css">
 
+    <link rel="preload" as="image" href="images/rains-header.webp">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -57,29 +61,9 @@
                         displayFeaturedPost(post);
                     }
                     
-                    // Load recent posts
-                    const recentQuery = window.fsQuery(
-                        window.fsCollection(db, 'posts'),
-                        window.fsWhere('published', '==', true),
-                        window.fsOrderBy('createdAt', 'desc'),
-                        window.fsLimit(6)
-                    );
+                    // Load recent posts as a paginated, infinite-scroll feed
+                    window.initRecentFeed();
 
-                    
-                    const recentSnapshot = await window.fsGetDocs(recentQuery);
-                    
-                    if (recentSnapshot.empty) {
-                        document.getElementById('recent-posts').innerHTML = `
-                            <div class="no-content-message">
-                                <h3>No recent posts found</h3>
-                                <p>New articles will appear here as they are published.</p>
-                            </div>
-                        `;
-                    } else {
-                        const posts = recentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        displayRecentPosts(posts.filter(post => !post.featured));
-                    }
-                    
                 } catch (error) {
                     console.error('Error loading posts:', error);
                     document.getElementById('featured-post').innerHTML = `
@@ -108,6 +92,7 @@
                         <span class="post-date">${postDate.toLocaleDateString()}</span>
                         <span class="featured-badge">Featured</span>
                     </div>
+                    ${post.author ? `<p class="post-author">By ${post.author}</p>` : ""}
                     <h2>${post.title}</h2>
                     <p>${post.excerpt || 'No excerpt available.'}</p>
                     <div class="post-tags">
@@ -120,10 +105,10 @@
 
 
 
-        function displayRecentPosts(posts) {
-            document.getElementById('recent-posts').innerHTML = posts.map(post => {
-                const postDate = post.createdAt?.toDate?.() || new Date();
-                return `
+        // Build a single recent-post card (shared by the feed + search results)
+        function renderRecentCard(post) {
+            const postDate = post.createdAt?.toDate?.() || new Date();
+            return `
                     <article class="blog-post-card">
                         ${post.previewImage ? 
                             `<img src="${post.previewImage}" alt="Preview" class="recent-post-image">` 
@@ -131,6 +116,7 @@
                         <div class="post-meta">
                             <span class="post-date">${postDate.toLocaleDateString()}</span>
                         </div>
+                        ${post.author ? `<p class="post-author">By ${post.author}</p>` : ""}
                         <h3>${post.title}</h3>
                         <p>${post.excerpt || 'No excerpt available.'}</p>
                         <div class="post-tags">
@@ -139,8 +125,113 @@
                         <button class="read-more-btn" data-post-id="${post.id}">Read More</button>
                     </article>
                 `;
-            }).join('');
         }
+
+        function displayRecentPosts(posts) {
+            document.getElementById('recent-posts').innerHTML = posts.map(renderRecentCard).join('');
+        }
+
+        // ----- Infinite-scroll pagination for the Recent Posts feed -----
+        // Loads posts a page at a time (RECENT_PAGE_SIZE) using a Firestore
+        // cursor (startAfter). An IntersectionObserver watches a sentinel at
+        // the bottom of the list and fetches the next page as it nears view.
+        const RECENT_PAGE_SIZE = 6;
+        let recentLastDoc = null;   // Firestore cursor: last doc of the last page
+        let recentLoading = false;
+        let recentDone = false;     // true once all posts are loaded
+        let recentObserver = null;
+
+        window.initRecentFeed = function() {
+            recentLastDoc = null;
+            recentLoading = false;
+            recentDone = false;
+
+            const container = document.getElementById('recent-posts');
+            container.innerHTML = `
+                <div id="recent-cards"></div>
+                <div id="recent-loading" class="loading-message" style="display:none;">Loading more posts…</div>
+                <div id="recent-end" class="loading-message" style="display:none;">You've reached the end.</div>
+                <div id="recent-sentinel" aria-hidden="true" style="height:1px;"></div>
+            `;
+
+            if (recentObserver) recentObserver.disconnect();
+            recentObserver = new IntersectionObserver((entries) => {
+                if (entries.some(e => e.isIntersecting)) window.loadMoreRecentPosts();
+            }, { rootMargin: '400px 0px' }); // begin loading a bit before it's visible
+            recentObserver.observe(document.getElementById('recent-sentinel'));
+
+            window.loadMoreRecentPosts(true); // first page
+        };
+
+        window.loadMoreRecentPosts = async function(isFirst = false) {
+            if (recentLoading || recentDone) return;
+            recentLoading = true;
+            const loadingEl = document.getElementById('recent-loading');
+            if (loadingEl) loadingEl.style.display = 'block';
+
+            try {
+                const constraints = [
+                    window.fsCollection(db, 'posts'),
+                    window.fsWhere('published', '==', true),
+                    window.fsOrderBy('createdAt', 'desc'),
+                ];
+                if (recentLastDoc) constraints.push(window.fsStartAfter(recentLastDoc));
+                constraints.push(window.fsLimit(RECENT_PAGE_SIZE));
+
+                const snap = await window.fsGetDocs(window.fsQuery(...constraints));
+
+                if (snap.docs.length > 0) {
+                    recentLastDoc = snap.docs[snap.docs.length - 1];
+                }
+                if (snap.docs.length < RECENT_PAGE_SIZE) {
+                    recentDone = true;
+                }
+
+                // Skip the featured post so it isn't duplicated above the feed
+                const posts = snap.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() }))
+                    .filter(post => !post.featured);
+
+                const cards = document.getElementById('recent-cards');
+                if (cards && posts.length) {
+                    cards.insertAdjacentHTML('beforeend', posts.map(renderRecentCard).join(''));
+                }
+
+                if (isFirst && cards && cards.children.length === 0 && recentDone) {
+                    cards.innerHTML = `
+                        <div class="no-content-message">
+                            <h3>No recent posts found</h3>
+                            <p>New articles will appear here as they are published.</p>
+                        </div>
+                    `;
+                }
+
+                if (recentDone) {
+                    if (recentObserver) recentObserver.disconnect();
+                    const endEl = document.getElementById('recent-end');
+                    if (endEl && cards && cards.children.length > 0) endEl.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error loading more recent posts:', error);
+                recentDone = true; // stop retrying on repeated failure
+                if (recentObserver) recentObserver.disconnect();
+            } finally {
+                recentLoading = false;
+                if (loadingEl) loadingEl.style.display = 'none';
+
+                // If the page still isn't filled (e.g. a whole page was featured),
+                // keep loading — but only while the section is actually visible.
+                if (!recentDone) {
+                    const container = document.getElementById('recent-posts');
+                    const sentinel = document.getElementById('recent-sentinel');
+                    const visible = container && container.offsetParent !== null;
+                    if (visible && sentinel &&
+                        sentinel.getBoundingClientRect().top < window.innerHeight + 400) {
+                        setTimeout(() => window.loadMoreRecentPosts(), 120);
+                    }
+                }
+            }
+        };
 
 
 
@@ -170,18 +261,14 @@
     </script>
     
     <script src="j-modules.js"></script>
+    <script src="functions/newsletter.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', async function() {
         // Load modules first
-        await ModuleLoader.loadMultipleModules([
-            { 
-                path: 'modules/account-bar.html', 
-                target: '#account-bar',
-                authCallback: window.updateAccountBar
-            },
-            { path: 'modules/small-grid-container.html', target: '#small-grid-container' }
-        ]);
+        // Header bar + nav are inlined in the HTML (no fetch) to avoid
+        // layout jitter and stay identical across pages.
+        await ModuleLoader.loadMultipleModules([]);
         
         // Initialize blog functionality
         initializePageSpecificFeatures();
@@ -283,13 +370,27 @@
 </head>
 <body>
     <!-- Persistent elements that never reload -->
-    <div id="account-bar"></div>
+    <div id="account-bar">
+        <header class="account-bar">
+            <a href="h-main.html" aria-label="Home">
+                <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
+            </a>
+            <a href="h-login.html" class="account">Log In / Sign Up</a>
+        </header>
+    </div>
     <header class="hero-small">
         <div class="hero-small-content">
             <h1>Blog</h1>
         </div>
     </header>
-    <div id="small-grid-container"></div>
+    <div id="small-grid-container">
+        <nav class="grid-container-small">
+            <a href="h-aboutme.html" class="grid-item-small">About Me</a>
+            <a href="h-projects.html" class="grid-item-small">Projects</a>
+            <a href="h-blog.html" class="grid-item-small">Blog</a>
+            <a href="h-contact.html" class="grid-item-small">Contact</a>
+        </nav>
+    </div>
 
     <!-- Dynamic content area -->
     <div id="page-content">

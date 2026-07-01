@@ -1,0 +1,114 @@
+/* ============================================================
+   contact.css — Contact form styling
+   Uses theme.css tokens with safe fallbacks.
+   ============================================================ */
+
+.contact-section {
+  max-width: 40rem;
+  margin: 3.5rem auto 4rem;
+  padding: 0 1.25rem;
+  font-family: var(--font-sans, 'Space Grotesk', system-ui, sans-serif);
+}
+
+.contact-heading {
+  text-align: center;
+  font-size: var(--fs-700, 2.25rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-primary, #022d33);
+  margin: 0 0 0.5rem;
+}
+
+.contact-intro {
+  text-align: center;
+  color: var(--color-text-muted, #5f6c6e);
+  font-size: var(--fs-400, 1rem);
+  margin: 0 auto 2rem;
+  max-width: 32rem;
+  line-height: var(--lh-snug, 1.35);
+}
+
+.contact-form {
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e5e7e7);
+  border-radius: var(--radius, 12px);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(2, 45, 51, 0.08));
+  padding: 1.75rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.cf-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.cf-row .cf-field { flex: 1 1 12rem; }
+
+.cf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.cf-field label {
+  font-size: var(--fs-300, 0.88rem);
+  font-weight: 600;
+  color: var(--color-text, #16282b);
+}
+
+.cf-field input,
+.cf-field textarea {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  font-size: var(--fs-400, 1rem);
+  font-family: inherit;
+  color: var(--color-text, #16282b);
+  background: var(--color-surface-alt, #f6f8f8);
+  border: 1px solid var(--color-border, #e5e7e7);
+  border-radius: var(--radius-sm, 8px);
+}
+.cf-field textarea { min-height: 8rem; resize: vertical; }
+
+.cf-field input:focus,
+.cf-field textarea:focus {
+  outline: none;
+  border-color: var(--color-primary-hover, #034d5a);
+  box-shadow: 0 0 0 3px rgba(3, 77, 90, 0.15);
+}
+
+/* Honeypot — visually hidden from humans */
+.cf-hp {
+  position: absolute !important;
+  left: -9999px !important;
+  width: 1px; height: 1px;
+  overflow: hidden;
+}
+
+.cf-submit {
+  justify-self: start;
+  padding: 0.75rem 1.6rem;
+  font-size: var(--fs-400, 1rem);
+  font-weight: 600;
+  font-family: inherit;
+  color: #fff;
+  background: var(--color-primary, #022d33);
+  border: none;
+  border-radius: var(--radius-sm, 8px);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(2, 45, 51, 0.08));
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.cf-submit:hover:not(:disabled) { background: var(--color-primary-hover, #034d5a); transform: translateY(-1px); }
+.cf-submit:disabled { opacity: 0.65; cursor: default; }
+
+.cf-message {
+  min-height: 1.2em;
+  margin: 0;
+  font-size: var(--fs-300, 0.9rem);
+}
+.cf-message.is-success { color: var(--color-success, #1f7a4d); }
+.cf-message.is-error { color: var(--color-error, #b3261e); }
+
+@media (max-width: 480px) {
+  .cf-submit { width: 100%; text-align: center; }
+}

@@ -39,7 +39,7 @@ a {
     height: 60vh;   
     background: 
         linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), /* dark overlay */
-        url("images/rains.png");
+        url("images/rains-header.webp");
     background-size: cover;               /* scale to fill */
     background-position: center;          /* center the image */
     background-repeat: no-repeat;
@@ -57,7 +57,7 @@ a {
     height: 10vh;   
     background: 
         linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), /* dark overlay */
-        url("images/rains.png");
+        url("images/rains-header.webp");
     background-size: cover;               /* scale to fill */
     background-position: center;          /* center the image */
     background-repeat: no-repeat;
@@ -578,12 +578,30 @@ body {
     gap: 25px;
 }
 
+/* Cards live inside this wrapper (infinite-scroll feed); keep the same
+   column spacing as .recent-posts so pagination looks identical. */
+#recent-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
 .blog-post-card {
     background: white;
     border-radius: 8px;
     padding: 25px;
     border: 1px solid #e5e5e5;
     transition: all 0.2s ease;
+}
+
+/* Author byline shown directly above a post's title (preview cards) */
+.post-author {
+
+    font-size: 0.85rem;
+    font-weight: 200;
+    letter-spacing: 0.02em;
+
+    color: var(--color-primary, #022d33);
 }
 
 .blog-post-card:hover {
@@ -1205,7 +1223,10 @@ body {
 
 .post-full-content img {
     max-width: 100%;
-    height: auto;
+    /* The editor stores inline width/height in px on resized images. Force
+       height to auto (overriding the inline value) so images scale
+       proportionally to their container width instead of being squished. */
+    height: auto !important;
     border-radius: 8px;
     margin: 20px 0;
 }
@@ -1322,7 +1343,10 @@ body {
 
 
 .projects-layout {
+
   padding: 40px 20px; /* top spacing + side breathing room */
+  max-width: 50%;
+  justify-content: center;  /* horizontal */
 }
 
 .projects-filter-bar {
@@ -1330,7 +1354,11 @@ body {
   color: white;
   border-bottom: 2px solid #011f24;
   padding: 12px 20px;
-  margin-top: 59px; /* ensures spacing from grid above */
+  /* No margin-top needed: .grid-container-small now uses height:auto (modern.css),
+     so it wraps its nav items correctly. The old `margin-top: 59px` hack existed to
+     clear the nav items when the grid had height:.1vh and they overflowed; with the
+     grid fixed, that hack rendered as a white gap, so it is removed. */
+  margin-top: 0;
 }
 
 .projects-filter-bar .filters-wrapper {
@@ -1901,6 +1929,13 @@ label[for="project-tags"] {
   font-weight: bold;
 }
 
+.featured-project {
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  padding: 10px;
+}
+
 .featured-project-image, .project-preview-image {
   width: 100%;
   max-width: 100px;          /* Limit image width */
@@ -1908,7 +1943,7 @@ label[for="project-tags"] {
   object-fit: cover;         /* Crop instead of stretching */
   border-radius: 8px;
   display: block;
-
+  
 
 }
 

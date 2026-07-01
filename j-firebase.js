@@ -9,6 +9,7 @@ import {
   where,
   orderBy,
   limit,
+  startAfter,
   addDoc,
   updateDoc,
   deleteDoc,
@@ -53,6 +54,7 @@ window.fsAddDoc = addDoc;
 window.fsUpdateDoc = updateDoc;
 window.fsDeleteDoc = deleteDoc;
 window.fsIncrement = increment;
+window.fsStartAfter = startAfter;
 
 // Optional: Auth methods
 window.signInWithEmailAndPassword = signInWithEmailAndPassword;

@@ -1,0 +1,226 @@
+CHANGELOG — Vapor Rain Website (Version 2.0)
+=============================================
+This file tracks changes made by the assistant across sessions so context
+is preserved. Newest entries at the top.
+
+
+2026-06-30
+----------
+FIX: Blog post viewer — mobile header inset + squished images.
+  (1) Header not flush on mobile:
+      - styles-phone.css .post-viewer-container had padding: 15px 10px 60px,
+        but that container holds the sticky header, so the padding pushed the
+        header (and close button) away from the screen edges.
+      - Set container padding to 0 and moved inner spacing to a new mobile
+        .post-viewer-content rule (padding: 20px 15px 60px; font-size 17px).
+        Header now sits flush to the top/sides.
+  (2) Images squished:
+      - The editor (j-posting.js ~L469-470) writes inline width/height in px
+        on resized images. In the viewer, max-width:100% shrank the width but
+        the inline height stayed fixed (stylesheet height:auto lost to inline),
+        distorting the image on narrow screens.
+      - styles.css .post-full-content img: height: auto !important so it
+        overrides the inline height and images scale proportionally to the
+        container width. (Editor's own resizing is unaffected — rule is
+        scoped to .post-full-content.)
+
+FIX/CONSISTENCY: Top header bar + nav now consistent and no longer jitter.
+  Problems:
+    - Account bar (logo/login) and the small nav were fetched at runtime via
+      ModuleLoader AFTER page load, then injected — causing pop-in and a
+      layout shift (jitter) between pages.
+    - Nav looked different between pages: Projects/Contact loaded theme.css +
+      modern.css (modern nav), but Blog/About Me only loaded styles.css
+      (old nav), so they rendered inconsistently.
+  Changes:
+    - Inlined the account bar + small nav directly into the HTML of h-main,
+      h-projects, h-blog, h-aboutme, h-contact (no fetch), so they render at
+      parse time — zero layout shift, identical markup everywhere. Removed
+      those entries from each page's ModuleLoader.loadMultipleModules call.
+      (h-main keeps its distinct big hero-bar/grid-container as modules.)
+    - The inlined account link defaults to "Log In / Sign Up"; j-firebase's
+      onAuthStateChanged still updates it to the username when logged in
+      (no page shift since the bar is position:fixed).
+    - Added theme.css + modern.css to h-blog.html and h-aboutme.html so all
+      subpages share the same header/nav styling.
+  Notes:
+    - modules/account-bar.html and modules/small-grid-container.html are no
+      longer used by these pages (kept as reference). If you edit the nav,
+      update the inlined copies in the 5 pages above.
+    - h-login/h-profile/h-project-editor still use the module loader (login
+      has no nav; profile/editor are behind-login admin pages) — can be
+      inlined later for full consistency if desired.
+
+PERF/FIX: Header background image reloaded/flashed on every page load.
+  Causes:
+    - images/rains.png was 4.67 MB (1597x1135) — huge for a short header
+      banner, so it took real time to fetch/decode on each navigation.
+    - preview-server.py sent no-cache on EVERYTHING (incl. images), so the
+      image re-downloaded on every local page load (main source of the flash).
+  Changes:
+    - Added images/rains-header.webp: a cropped/compressed banner
+      (1600x500, ~124 KB — 37x smaller than the PNG). Original rains.png
+      kept untouched.
+    - styles.css: .hero and .hero-small now use rains-header.webp.
+    - preview-server.py: static assets (images/fonts/media, by extension)
+      are now cached (max-age=86400); HTML/CSS/JS stay no-cache so edits
+      still show on reload.
+    - Added <link rel="preload" as="image" href="images/rains-header.webp">
+      to h-main, h-projects, h-blog, h-aboutme, h-contact so the header
+      image is fetched early.
+  Result: after the first load the header image is cached and no longer
+  re-fetches between pages; first load is also far faster.
+
+FEATURE: Show post author above the title on blog preview cards.
+  - h-blog.html: renderRecentCard() and displayFeaturedPost() now render
+    `By <author>` (from the post's "author" field in Firestore) directly
+    above the <h3>/<h2> title. Hidden if a post has no author.
+  - styles.css: added .post-author byline style (small uppercase teal text).
+
+FEATURE: Infinite-scroll (lazy-loading) Recent Posts feed on the blog.
+  Goal: with 20+ posts, don't fetch them all at once — load a page at a
+  time as the reader scrolls.
+
+  How it works:
+    - Posts load in pages of RECENT_PAGE_SIZE (6) using a Firestore cursor
+      (startAfter) so each page continues where the last left off.
+    - An IntersectionObserver watches a 1px sentinel at the bottom of the
+      list and fetches the next page ~400px before it enters view.
+    - Cards are appended (not re-rendered); a "Loading more posts…"
+      indicator shows during fetch and "You've reached the end." when done.
+    - Featured post is still skipped in the feed so it isn't duplicated.
+
+  Files changed:
+    - j-firebase.js: import Firestore startAfter and expose it as
+      window.fsStartAfter (needed for pagination cursors).
+      NOTE: initial attempt only added the export line, not the import,
+      causing "ReferenceError: startAfter is not defined" at load — fixed
+      by adding startAfter to the firestore import list (line 12).
+    - h-blog.html: replaced the one-shot limit(6) recent-posts load with a
+      paginated feed. Refactored card HTML into renderRecentCard(); added
+      window.initRecentFeed() + window.loadMoreRecentPosts() with the
+      observer, loading/end states, and a safeguard that keeps loading if
+      the first page doesn't fill the viewport (only while visible).
+    - styles.css: added #recent-cards (flex column, 25px gap) so the new
+      cards wrapper keeps the same spacing as .recent-posts.
+
+  Notes:
+    - Uses the existing published+createdAt query, so no new Firestore index
+      is required.
+    - Search/tag/category filters render into a separate #filtered-posts
+      container and hide the recent section, so they don't conflict with the
+      feed. Clearing search re-initializes the feed fresh.
+
+FIX/POLISH: Contact page layout (intro text overlapped the nav menu).
+  Cause: h-contact.html only loaded styles.css, NOT modern.css — so
+    .grid-container-small kept its old height:.1vh and its nav items
+    overflowed, letting the contact section slide up underneath them
+    (same root cause as the earlier white-bar bug).
+  Change:
+    - h-contact.html: now loads theme.css + modern.css (consistent modern
+      look + grid height:auto fixes the overlap). Added a "Get in touch"
+      heading above the intro.
+    - contact.css: added .contact-heading style, increased top margin, and
+      tightened the intro width for a more official look.
+
+UPDATE: Contact form is now LIVE via Formspree.
+  - functions/contact.js: set config.provider = "formspree" and
+    formspreeUrl = "https://formspree.io/f/mbdvaejj".
+  - Submissions now POST to Formspree and are emailed to me (no longer
+    PLACEHOLDER mode). Note: Formspree's first real submission may require a
+    one-time confirmation in the Formspree dashboard.
+
+FEATURE (front-end only): Contact form on the Contact page.
+  Goal: visitors submit name/email/subject/message; it gets emailed to me.
+  Static site can't send mail itself, so submissions funnel through ONE
+  function: ContactForm.send(data). A form-to-email service plugs in there.
+
+  Added:
+    - functions/contact.js: handler with config.provider switch.
+        * "PLACEHOLDER" (default): validates + logs + stores in localStorage,
+          sends nothing. UI works end-to-end. View via ContactForm.getPending().
+        * Ready-to-fill branches for "formsubmit" (FormSubmit.co, no signup),
+          "web3forms", and "formspree" — each with a TODO_* config value.
+        * Includes a honeypot (_gotcha) for basic spam protection +
+          loading/success/error states.
+    - contact.css: form styling using theme.css tokens (responsive).
+
+  Wired into:
+    - h-contact.html: added the styled form markup + <link contact.css> +
+      <script functions/contact.js>.
+
+  How to go live later: set ContactForm.config.provider to one of
+  "formsubmit" | "web3forms" | "formspree" and fill the matching TODO_* value
+  in functions/contact.js. Recommended: FormSubmit.co (zero signup; you just
+  confirm once via email).
+
+FEATURE (front-end only): Newsletter / subscriber web interface.
+  Goal: let visitors subscribe on first visit and (later) at registration.
+  Backend/sending is NOT built yet by design — a provider (likely Zoho
+  Campaigns) will be wired in later at a single integration point.
+
+  Added:
+    - functions/newsletter.js: the framework. Key pieces:
+        * Newsletter.subscribe(email, source) — THE single integration point.
+          Currently runs in PLACEHOLDER mode (validates + records the email
+          in localStorage, logs to console, sends nothing). A ready-to-fill
+          Zoho branch exists guarded by config.provider === "zoho" with
+          TODO_ZOHO_* placeholders for the form action URL + field names.
+        * First-visit popup: auto-injected site-wide, shows once via
+          localStorage (vr_newsletter_popup_seen / vr_newsletter_subscribed).
+          Disable per-page with <body data-newsletter-no-popup>.
+        * Newsletter.renderCheckbox(target) + handleRegistrationOptIn(email)
+          — reusable opt-in checkbox for the future register page.
+        * Newsletter.getPending() — view captured emails during testing.
+    - newsletter.css: popup + checkbox styling using theme.css tokens
+      (with fallbacks). Responsive + reduced-motion aware.
+
+  Wired into (added <link newsletter.css> + <script functions/newsletter.js>):
+    - h-main.html, h-projects.html, h-blog.html, h-aboutme.html, h-contact.html
+
+  NOT done yet (waiting on backend decision):
+    - Real sending / list storage (Zoho Campaigns config values).
+    - Registration page (register.html doesn't exist yet); checkbox helper is
+      ready to drop in when it's built.
+
+  How to go live later: set Newsletter.config.provider = "zoho" and fill the
+  zohoFormActionUrl / zohoEmailFieldName / zohoExtraFields in newsletter.js.
+
+FIX: Preview not reflecting CSS/HTML edits (browser caching).
+  Cause:
+    - preview.bat used `python -m http.server`, which lets the browser cache
+      styles.css/JS. Re-running the .bat reopened the same URL and the browser
+      served the stale cached stylesheet, so edits didn't appear.
+  Change:
+    - Added preview-server.py: a SimpleHTTPRequestHandler subclass that sends
+      no-cache headers on every response.
+    - preview.bat now runs `python preview-server.py 8000` instead of
+      `python -m http.server 8000`.
+  (Tip: a one-time hard refresh — Ctrl+F5 — clears any already-cached copy.)
+  Files touched:
+    - preview.bat
+    - preview-server.py (created)
+    - changelog.txt
+
+FIX: Removed the white bar between the page nav menu (About Me / Projects /
+     Blog / Contact) and the Projects filter bar (New Project / Design /
+     Research / ...) on the Projects page.
+
+  Root cause:
+    - In styles.css, `.grid-container-small` originally had `height: .1vh`
+      (essentially zero). The nav items overflowed that near-zero container,
+      and `.projects-filter-bar { margin-top: 59px }` was a hack that pushed
+      the filter bar down to clear those overflowing items. No visible gap.
+    - The v2 modernization (commit fb78cd4, which added modern.css) set
+      `.grid-container-small { height: auto }`. The container now correctly
+      wraps its nav items, so they no longer overflow — but the leftover
+      `margin-top: 59px` hack then became a real 59px white gap (the white
+      page background showing through).
+
+  Change:
+    - styles.css: `.projects-filter-bar` margin-top changed from 59px to 0
+      and documented why. The filter bar now sits flush under the nav grid.
+
+  Files touched:
+    - styles.css
+    - changelog.txt (created)

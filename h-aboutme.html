@@ -4,24 +4,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="theme.css">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="modern.css">
+    <link rel="stylesheet" href="newsletter.css">
+    <link rel="preload" as="image" href="images/rains-header.webp">
      <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <script type="module" src="j-firebase.js"></script>
     <script src="j-modules.js"></script>
+    <script src="functions/newsletter.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', async function() {
-            await ModuleLoader.loadMultipleModules([
-                { 
-                    path: 'modules/account-bar.html', 
-                    target: '#account-bar',
-                    authCallback: window.updateAccountBar  // This updates based on auth state
-                },
-                { path: 'modules/small-grid-container.html', target: '#small-grid-container' }
-            ]);
+            // Header bar + nav are inlined in the HTML (no fetch) to avoid
+            // layout jitter and stay identical across pages.
+            await ModuleLoader.loadMultipleModules([]);
             
             // Any page-specific JavaScript after modules load
             initializePageSpecificFeatures();
@@ -35,13 +35,27 @@
 
 </head>
 <body>
-    <div id="account-bar"></div>
+    <div id="account-bar">
+        <header class="account-bar">
+            <a href="h-main.html" aria-label="Home">
+                <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
+            </a>
+            <a href="h-login.html" class="account">Log In / Sign Up</a>
+        </header>
+    </div>
     <header class="hero-small">
         <div class="hero-small-content">
             <h1>About Me</h1>
         </div>
     </header>
-    <div id="small-grid-container"></div>
+    <div id="small-grid-container">
+        <nav class="grid-container-small">
+            <a href="h-aboutme.html" class="grid-item-small">About Me</a>
+            <a href="h-projects.html" class="grid-item-small">Projects</a>
+            <a href="h-blog.html" class="grid-item-small">Blog</a>
+            <a href="h-contact.html" class="grid-item-small">Contact</a>
+        </nav>
+    </div>
 
     
     

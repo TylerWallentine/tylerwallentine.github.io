@@ -7,4 +7,4 @@ cd /d "%~dp0"
 echo Starting local preview at http://localhost:8000/h-main.html
 echo Press Ctrl+C in this window to stop the server.
 start "" "http://localhost:8000/h-main.html"
-python -m http.server 8000
+python preview-server.py 8000

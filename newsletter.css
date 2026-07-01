@@ -1,0 +1,157 @@
+/* ============================================================
+   newsletter.css — Subscribe popup + opt-in checkbox styling
+   Uses theme.css tokens when present, with safe fallbacks so it
+   also looks fine on pages that don't load theme.css.
+   ============================================================ */
+
+/* ---------- First-visit popup ---------- */
+.nl-popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(13, 29, 33, 0.55);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.nl-popup-overlay.is-open { opacity: 1; }
+
+.nl-popup {
+  position: relative;
+  width: 100%;
+  max-width: 30rem;
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text, #16282b);
+  border-radius: var(--radius-lg, 20px);
+  box-shadow: var(--shadow-lg, 0 16px 48px rgba(2, 45, 51, 0.18));
+  padding: 2rem 1.75rem 1.5rem;
+  text-align: center;
+  transform: translateY(14px) scale(0.98);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: var(--font-sans, 'Space Grotesk', system-ui, sans-serif);
+}
+.nl-popup-overlay.is-open .nl-popup { transform: translateY(0) scale(1); }
+
+.nl-popup-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.6rem;
+  background: none;
+  border: none;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--color-text-muted, #5f6c6e);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+}
+.nl-popup-close:hover { color: var(--color-text, #16282b); }
+
+.nl-popup-title {
+  font-size: var(--fs-600, 1.6rem);
+  margin: 0 0 0.5rem;
+  color: var(--color-primary, #022d33);
+  letter-spacing: -0.01em;
+}
+.nl-popup-body {
+  font-size: var(--fs-400, 1rem);
+  color: var(--color-text-muted, #5f6c6e);
+  margin: 0 0 1.25rem;
+  line-height: var(--lh-snug, 1.35);
+}
+
+.nl-form {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.nl-input {
+  flex: 1 1 12rem;
+  min-width: 0;
+  padding: 0.7rem 0.9rem;
+  font-size: var(--fs-400, 1rem);
+  font-family: inherit;
+  color: var(--color-text, #16282b);
+  background: var(--color-surface-alt, #f6f8f8);
+  border: 1px solid var(--color-border, #e5e7e7);
+  border-radius: var(--radius-sm, 8px);
+}
+.nl-input:focus {
+  outline: none;
+  border-color: var(--color-primary-hover, #034d5a);
+  box-shadow: 0 0 0 3px rgba(3, 77, 90, 0.15);
+}
+.nl-submit {
+  flex: 0 0 auto;
+  padding: 0.7rem 1.3rem;
+  font-size: var(--fs-400, 1rem);
+  font-weight: 600;
+  font-family: inherit;
+  color: #fff;
+  background: var(--color-primary, #022d33);
+  border: none;
+  border-radius: var(--radius-sm, 8px);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(2, 45, 51, 0.08));
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.nl-submit:hover:not(:disabled) { background: var(--color-primary-hover, #034d5a); transform: translateY(-1px); }
+.nl-submit:disabled { opacity: 0.65; cursor: default; }
+
+.nl-message {
+  min-height: 1.2em;
+  margin: 0.9rem 0 0.25rem;
+  font-size: var(--fs-300, 0.88rem);
+}
+.nl-message.is-success { color: var(--color-success, #1f7a4d); }
+.nl-message.is-error { color: var(--color-error, #b3261e); }
+
+.nl-popup-dismiss {
+  margin-top: 0.5rem;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: var(--fs-300, 0.88rem);
+  color: var(--color-text-muted, #5f6c6e);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.nl-popup-dismiss:hover { color: var(--color-text, #16282b); }
+
+/* ---------- Opt-in checkbox (registration form) ---------- */
+.nl-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-family: var(--font-sans, 'Space Grotesk', system-ui, sans-serif);
+  font-size: var(--fs-300, 0.9rem);
+  color: var(--color-text, #16282b);
+  cursor: pointer;
+  line-height: 1.3;
+  margin: 0.5rem 0;
+}
+.nl-checkbox input[type="checkbox"] {
+  margin-top: 0.15rem;
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--color-primary, #022d33);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+/* ---------- Small screens ---------- */
+@media (max-width: 480px) {
+  .nl-form { flex-direction: column; }
+  .nl-submit { width: 100%; }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .nl-popup-overlay,
+  .nl-popup { transition: none; }
+}
