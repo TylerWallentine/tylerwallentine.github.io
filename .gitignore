@@ -1,6 +1,10 @@
 # Dependencies
 node_modules/
 
+# Python cache (from preview-server.py)
+__pycache__/
+*.pyc
+
 # Secrets - NEVER commit these
 serviceAccountKey.json
 *.serviceAccountKey.json

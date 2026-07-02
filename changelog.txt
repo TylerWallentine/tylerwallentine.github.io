@@ -6,6 +6,23 @@ is preserved. Newest entries at the top.
 
 2026-06-30
 ----------
+FIX: Publishing pipeline — updates weren't reaching GitHub / the live site.
+  Diagnosis:
+    - All v2 work was committed on local branch "v2-revamp", which had NO
+      upstream, so `git push` in update.bat silently failed — but the script
+      printed "Done!" unconditionally.
+    - origin only had "main" (at old commit dc0be72), and GitHub Pages builds
+      from main, so the live site was stuck on the pre-v2 version.
+  Fix:
+    - Fast-forwarded main to include all v2-revamp commits (dc0be72..46b1483)
+      and pushed main to origin — site now publishes the v2 work.
+    - Rewrote update.bat: warns if not on main, runs pull --rebase/push with
+      explicit branch + upstream (-u), and only reports success if the push
+      actually succeeds (fails loudly otherwise).
+    - .gitignore: ignore __pycache__/ and *.pyc; removed the accidentally
+      committed preview-server .pyc from the repo.
+  Going forward: do your work on the "main" branch so update.bat publishes it.
+
 FIX: Blog post viewer — mobile header inset + squished images.
   (1) Header not flush on mobile:
       - styles-phone.css .post-viewer-container had padding: 15px 10px 60px,
