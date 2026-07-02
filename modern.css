@@ -255,3 +255,17 @@ button:active { transform: translateY(0); }
   border-radius: var(--radius-sm);
 }
 .project-actions .delete-btn:hover { background: var(--color-error); color: #fff; }
+
+/* ============================================================
+   Mobile (shared across ALL pages, since every page loads modern.css)
+   - Centered page titles in the small hero header
+   - Projects layout spans the full container width (with padding)
+   ============================================================ */
+@media (max-width: 768px) {
+  .hero-small { justify-content: center; text-align: center; }
+  .hero-small-content { text-align: center; padding: 0 15px; }
+  .hero-small-content h1 { font-size: 7vw; color: #ffffff; margin: 0; }
+
+  /* Projects: full-width cards on mobile (desktop keeps its narrow column) */
+  .projects-layout { max-width: 100%; padding: 24px 15px; }
+}

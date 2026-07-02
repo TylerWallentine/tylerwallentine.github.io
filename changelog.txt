@@ -6,6 +6,26 @@ is preserved. Newest entries at the top.
 
 2026-06-30
 ----------
+FIX/CONSISTENCY: Mobile header + page titles unified across pages.
+  Background: styles-phone.css was loaded ONLY on Blog + Main. It overrode
+  the account (raindrop/login) bar back to an older, worse-looking version
+  and centered the hero-small title — so Blog looked different from the
+  other pages on mobile, and its bar looked worse.
+  Changes:
+    - styles-phone.css: removed the .account-bar / .account / ".account-bar *"
+      mobile overrides so Blog/Main now use the shared modern bar (theme.css +
+      modern.css) like every other page. Removed the divergent .hero-small
+      block (centralized instead, see below). Fixed leftover 4.7MB rains.png
+      references (.hero, .hero-small) to use images/rains-header.webp.
+    - modern.css: added a shared @media (max-width: 768px) block (every page
+      loads modern.css) that:
+        * centers the small hero page title on mobile (all pages), and
+        * makes .projects-layout span the full width with padding on mobile
+          (desktop keeps its narrow centered column).
+  Result: the raindrop/login bar is now identical on every page (mobile +
+  desktop); Projects/Contact/About Me get centered mobile titles like the
+  Blog; Projects cards span the full mobile container with padding.
+
 FIX: Publishing pipeline — updates weren't reaching GitHub / the live site.
   Diagnosis:
     - All v2 work was committed on local branch "v2-revamp", which had NO
