@@ -57,10 +57,127 @@
         </nav>
     </div>
 
-    
-    
-    
-    
+    <main id="aboutme-container">
+        <article id="aboutme-content">
+            <p>Loading About Me content...</p>
+        </article>
+        <button id="edit-aboutme-btn" style="display:none;">✏️ Edit About Me</button>
+        <div id="aboutme-editor" style="display:none;">
+            <div id="aboutme-editor-area" contenteditable="true"></div>
+            <div class="aboutme-editor-buttons">
+                <button id="save-aboutme-btn">💾 Save</button>
+                <button id="cancel-aboutme-btn">Cancel</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Load the "About Me" content from Firestore (pages/about-me) and,
+        // for the admin, allow inline editing that saves straight back to Firestore.
+        document.addEventListener("DOMContentLoaded", () => {
+            const ADMIN_EMAIL = "wallentinetyler@gmail.com";
+
+            const contentEl = document.getElementById("aboutme-content");
+            const editBtn   = document.getElementById("edit-aboutme-btn");
+            const editorBox = document.getElementById("aboutme-editor");
+            const editArea  = document.getElementById("aboutme-editor-area");
+            const saveBtn   = document.getElementById("save-aboutme-btn");
+            const cancelBtn = document.getElementById("cancel-aboutme-btn");
+
+            const aboutRef = () =>
+                window.fsDoc(window.firestoreDb, "pages", "about-me");
+
+            async function loadAboutMe() {
+                try {
+                    const snap = await window.fsGetDoc(aboutRef());
+                    if (snap.exists() && snap.data().content) {
+                        contentEl.innerHTML = snap.data().content;
+                    } else {
+                        contentEl.innerHTML = "<p>No About Me content found yet.</p>";
+                    }
+                } catch (err) {
+                    console.error("Error loading About Me:", err);
+                    contentEl.innerHTML =
+                        "<p><em>Couldn't load About Me content: " +
+                        (err.code || err.message || err) + "</em></p>";
+                }
+            }
+
+            // Wait until the firebase globals from j-firebase.js are ready.
+            function whenFirebaseReady(cb) {
+                if (window.firestoreDb && window.fsDoc && window.fsGetDoc) {
+                    cb();
+                } else {
+                    setTimeout(() => whenFirebaseReady(cb), 200);
+                }
+            }
+
+            whenFirebaseReady(() => {
+                loadAboutMe();
+
+                // Show the edit button only for the admin account.
+                const auth = window.firebaseAuth;
+                if (auth && auth.onAuthStateChanged) {
+                    auth.onAuthStateChanged((user) => {
+                        editBtn.style.display =
+                            user && user.email === ADMIN_EMAIL ? "block" : "none";
+                    });
+                }
+            });
+
+            // ---- Inline editing (admin only) ----
+            editBtn.addEventListener("click", () => {
+                editArea.innerHTML = contentEl.innerHTML;
+                contentEl.style.display = "none";
+                editBtn.style.display = "none";
+                editorBox.style.display = "block";
+            });
+
+            cancelBtn.addEventListener("click", () => {
+                editorBox.style.display = "none";
+                contentEl.style.display = "";
+                editBtn.style.display = "block";
+            });
+
+            saveBtn.addEventListener("click", async () => {
+                const newContent = editArea.innerHTML;
+                saveBtn.disabled = true;
+                saveBtn.textContent = "Saving…";
+                try {
+                    // setDoc-style upsert via updateDoc, falling back to addDoc-less
+                    // create if the doc doesn't exist yet.
+                    const ref = aboutRef();
+                    const snap = await window.fsGetDoc(ref);
+                    if (snap.exists()) {
+                        await window.fsUpdateDoc(ref, {
+                            content: newContent,
+                            updatedAt: new Date()
+                        });
+                    } else {
+                        // No global setDoc is exposed, so import it on demand.
+                        const { setDoc } = await import(
+                            "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
+                        );
+                        await setDoc(ref, {
+                            content: newContent,
+                            updatedAt: new Date()
+                        });
+                    }
+                    contentEl.innerHTML = newContent;
+                    editorBox.style.display = "none";
+                    contentEl.style.display = "";
+                    editBtn.style.display = "block";
+                } catch (err) {
+                    console.error("Error saving About Me:", err);
+                    alert("Failed to save: " + (err.code || err.message || err));
+                } finally {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = "💾 Save";
+                }
+            });
+        });
+    </script>
+
 </body>
 
 </html>

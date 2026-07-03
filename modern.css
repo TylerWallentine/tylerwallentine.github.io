@@ -269,3 +269,36 @@ button:active { transform: translateY(0); }
   /* Projects: full-width cards on mobile (desktop keeps its narrow column) */
   .projects-layout { max-width: 100%; padding: 24px 15px; }
 }
+
+/* ===== About Me page ===== */
+#aboutme-container {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 0 20px;
+  line-height: 1.7;
+}
+#aboutme-content img { max-width: 100%; height: auto; }
+#edit-aboutme-btn,
+#aboutme-editor button {
+  margin-top: 20px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 6px;
+  background: #2b2b2b;
+  color: #fff;
+  cursor: pointer;
+  font-family: inherit;
+}
+#edit-aboutme-btn:hover,
+#aboutme-editor button:hover { background: #444; }
+#aboutme-editor-area {
+  min-height: 240px;
+  padding: 16px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  color: #111;
+}
+.aboutme-editor-buttons { display: flex; gap: 10px; }
+#save-aboutme-btn { background: #1f7a3d; }
+#save-aboutme-btn:hover { background: #26944a; }
