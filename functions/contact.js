@@ -13,7 +13,7 @@
      "web3forms"   — Web3Forms      (free access key)
      "formspree"   — Formspree      (free tier)
 
-   Markup contract (see h-contact.html):
+   Markup contract (see /contact):
      <form id="contact-form"> with fields named:
         name, email, subject, message, and a honeypot named "_gotcha".
      A <p class="cf-message"> for status text.

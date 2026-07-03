@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page not found — Vapor Rain</title>
+    <link rel="stylesheet" href="/theme.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: linear-gradient(180deg, #0d1d21 0%, #022d33 100%);
+            color: #fff;
+            font-family: var(--font-sans, 'Space Grotesk', system-ui, sans-serif);
+            padding: 1.5rem;
+        }
+        .nf-wrap { max-width: 34rem; }
+        .nf-code {
+            font-size: clamp(4rem, 18vw, 9rem);
+            font-weight: 700;
+            line-height: 1;
+            letter-spacing: -0.03em;
+            margin: 0 0 0.5rem;
+        }
+        .nf-title { font-size: clamp(1.4rem, 5vw, 2rem); margin: 0 0 0.75rem; }
+        .nf-text { color: rgba(255,255,255,0.75); font-size: 1.05rem; margin: 0 0 1.75rem; line-height: 1.5; }
+        .nf-links { display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center; }
+        .nf-links a {
+            display: inline-block;
+            padding: 0.65rem 1.3rem;
+            border-radius: 999px;
+            font-weight: 600;
+            text-decoration: none;
+            color: #022d33;
+            background: #fff;
+            transition: transform 0.15s ease, background 0.15s ease;
+        }
+        .nf-links a.secondary { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.4); }
+        .nf-links a:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+    <div class="nf-wrap">
+        <p class="nf-code">404</p>
+        <h1 class="nf-title">Page not found</h1>
+        <p class="nf-text">The page you're looking for doesn't exist or may have moved.</p>
+        <div class="nf-links">
+            <a href="/">Go home</a>
+            <a href="/blog" class="secondary">Blog</a>
+            <a href="/projects" class="secondary">Projects</a>
+        </div>
+    </div>
+</body>
+</html>

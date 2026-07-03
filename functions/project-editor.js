@@ -516,7 +516,7 @@ async publishProject() {
       // Avoid the unsaved-changes prompt, then return to the projects page
       this.hasUnsavedChanges = false;
       this.showSaveStatus("🗑️ Project deleted.");
-      window.location.href = "h-projects.html";
+      window.location.href = "/projects";
     } catch (err) {
       console.error("Error deleting project:", err);
       this.showSaveStatus("❌ Failed to delete project.", true);

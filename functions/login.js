@@ -28,7 +28,7 @@ async function handleLogin(event) {
         console.log('User logged in:', user.email);
         
         // Redirect to main page after successful login
-        window.location.href = 'h-main.html';
+        window.location.href = '/';
         
     } catch (error) {
         console.error('Login error:', error);

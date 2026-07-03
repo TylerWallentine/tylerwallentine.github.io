@@ -1,4 +1,4 @@
-// Blog Post Viewer - Add to your h-blog.html or create as blog-post-viewer.js
+// Blog Post Viewer - Add to your /blog or create as blog-post-viewer.js
 
 class BlogPostViewer {
     constructor() {
@@ -155,7 +155,7 @@ document.getElementById('post-creator-content').style.display = 'block';
     // Use iframe for the editor
     contentDiv.innerHTML = `
         <article class="new-post-wrapper">
-            <iframe src="h-posting.html" class="new-post-frame"></iframe>
+            <iframe src="/posting" class="new-post-frame"></iframe>
         </article>
     `;
 }
@@ -324,7 +324,7 @@ async loadPost(postId, animate = true) {
         editBtn.addEventListener('click', () => {
             this.loadNewPost(); // shows the iframe
             const iframe = document.querySelector(".new-post-frame");
-            iframe.src = `h-posting.html?edit=${this.currentPost.id}`; // ✅ use this.currentPost
+            iframe.src = `/posting?edit=${this.currentPost.id}`; // ✅ use this.currentPost
         });
     }
 

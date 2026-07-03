@@ -1,3 +1,54 @@
+CHANGELOG — Vapor Rain Website (Version 2.0.1)
+=============================================
+
+2026-07-02  (Version 2.0.1 — cloned from Version 2.0)
+----------------------------------------------------
+FEATURE: Clean, extensionless URLs (e.g. vaporrain.com/projects, /blog).
+  This whole version was cloned into a new "Version 2.0.1" folder first; all
+  changes below were made there.
+
+  How it works: GitHub Pages serves `projects.html` at `/projects`
+  automatically, so pages were renamed to friendly names and all links now
+  point to the extensionless paths.
+
+  Renames (git mv, history preserved):
+    - h-main.html        -> index.html        (home, served at "/")
+      (the old index.html redirect stub was removed)
+    - h-projects.html    -> projects.html     -> /projects
+    - h-blog.html        -> blog.html         -> /blog
+    - h-aboutme.html     -> about.html        -> /about
+    - h-contact.html     -> contact.html      -> /contact
+    - h-login.html       -> login.html        -> /login
+    - h-profile.html     -> profile.html      -> /profile
+    - h-posting.html     -> posting.html      -> /posting
+    - h-project-editor.html -> project-editor.html -> /project-editor
+
+  Links updated: all 56 references across HTML/JS (navs, JS redirects, the
+  blog post links like /blog?post=..., the posting/editor iframes and
+  ?id=/?edit= redirects) now use clean root-absolute paths (/projects, /blog,
+  /about, /contact, /, /login, /profile, /posting, /project-editor). Verified
+  zero remaining h-*.html references.
+
+  Supporting changes:
+    - Added 404.html (branded). GitHub Pages serves it automatically for
+      unknown paths.
+    - preview-server.py: now mimics GitHub Pages — resolves /projects ->
+      projects.html and serves 404.html for unknown paths — so local preview
+      matches production. (Kept the no-cache-for-code / cache-assets logic.)
+    - preview.bat: opens "/" (home) instead of /h-main.html.
+    - README.md: documented the clean-URL scheme.
+
+  Notes:
+    - Old /h-*.html URLs are NOT kept as redirects (site is new). If any
+      external links to them exist, they'll 404 — easy to add stubs later.
+    - Pages behind login (login/profile/project-editor/posting) still load
+      the nav via ModuleLoader; their module links were updated too.
+
+
+=============================================
+  (history below is inherited from Version 2.0)
+=============================================
+
 CHANGELOG — Vapor Rain Website (Version 2.0)
 =============================================
 This file tracks changes made by the assistant across sessions so context

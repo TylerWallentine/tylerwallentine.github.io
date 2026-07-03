@@ -160,11 +160,11 @@ function updateAccountBar(accountBarElement, displayName) {
     
     if (displayName) {
         accountLink.textContent = displayName;
-        accountLink.href = 'h-profile.html';
+        accountLink.href = '/profile';
         accountLink.classList.add('logged-in');
     } else {
         accountLink.textContent = 'Log In / Sign Up';
-        accountLink.href = 'h-login.html';
+        accountLink.href = '/login';
         accountLink.classList.remove('logged-in');
     }
 }
@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const user = userCredential.user;
                 
                 console.log('User logged in:', user);
-                window.location.href = 'h-main.html'; // Change to your desired page
+                window.location.href = '/'; // Change to your desired page
                 
             } catch (error) {
                 console.error('Login error:', error);

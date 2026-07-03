@@ -13,7 +13,7 @@ async function handleLogout() {
     const auth = getAuthSafe();     // <-- fetch when needed, after init
     await signOut(auth);
     console.log("User signed out successfully");
-    window.location.href = "h-login.html";
+    window.location.href = "/login";
   } catch (error) {
     console.error("Error signing out:", error);
     alert("Error signing out. Please try again.");
