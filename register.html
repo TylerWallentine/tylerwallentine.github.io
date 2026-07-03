@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register - Vapor Rain</title>
+
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: "Space Grotesk", sans-serif;
+      background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%);
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .register-container {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      padding: 40px;
+      width: 380px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 24px;
+      font-weight: 600;
+      color: #f1f1f1;
+    }
+
+    label {
+      display: block;
+      margin-top: 14px;
+      font-size: 14px;
+      color: #ccc;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #333;
+      border-radius: 8px;
+      margin-top: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font-size: 15px;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #0af;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 24px;
+      padding: 12px;
+      background: #0af;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-weight: 600;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #09c;
+    }
+
+    .message {
+      text-align: center;
+      margin-top: 12px;
+      font-size: 14px;
+      color: #ccc;
+    }
+
+    .message a {
+      color: #0af;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .error {
+      color: #ff6666;
+      text-align: center;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    .success {
+      color: #6cff6c;
+      text-align: center;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="register-container">
+    <h2>Create Account</h2>
+
+    <form id="register-form">
+      <label for="email">Email</label>
+      <input type="email" id="email" placeholder="Enter your email" required>
+
+      <label for="firstName">First Name</label>
+      <input type="text" id="firstName" placeholder="First Name" required>
+
+      <label for="middleInitial">Middle Initial</label>
+      <input type="text" id="middleInitial" placeholder="M" maxlength="1">
+
+      <label for="lastName">Last Name</label>
+      <input type="text" id="lastName" placeholder="Last Name" required>
+
+      <label for="alias">Alias</label>
+      <input type="text" id="alias" placeholder="Choose an alias" required>
+
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Create a password" required>
+
+      <button type="submit">Register</button>
+    </form>
+
+    <div id="feedback"></div>
+
+    <div class="message">
+      Already have an account? <a href="h-login.html">Login</a>
+    </div>
+  </div>
+  <!-- Make sure j-firebase.js is loaded before this -->
+  <script type="module" src="j-firebase.js"></script>
+  <script type="module">
+    import {
+      getAuth,
+      createUserWithEmailAndPassword,
+      updateProfile
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      setDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // Use global Firebase app from j-firebase.js
+    const auth = getAuth(window.firebaseApp);
+    const db = getFirestore(window.firebaseApp);
+
+    const form = document.getElementById("register-form");
+    const feedback = document.getElementById("feedback");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const firstName = document.getElementById("firstName").value.trim();
+      const middleInitial = document.getElementById("middleInitial").value.trim();
+      const lastName = document.getElementById("lastName").value.trim();
+      const alias = document.getElementById("alias").value.trim();
+
+      feedback.textContent = "";
+      feedback.className = "";
+
+      try {
+        // Create user in Firebase Auth
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // Set alias as display name
+        await updateProfile(user, { displayName: alias });
+
+        // Save to Firestore users collection
+        const dbRef = doc(db, "users", user.uid);
+        await setDoc(dbRef, {
+          email,
+          firstName,
+          middleInitial,
+          lastName,
+          alias,
+          role: "user",
+          createdAt: new Date()
+        });
+
+        feedback.textContent = "✅ Account created successfully!";
+        feedback.className = "success";
+
+        setTimeout(() => {
+          window.location.href = "h-login.html";
+        }, 1500);
+      } catch (error) {
+        console.error(error);
+        feedback.textContent = error.message;
+        feedback.className = "error";
+      }
+    });
+  </script>
+
+  
+
+</body>
+</html>
