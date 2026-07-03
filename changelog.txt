@@ -1,6 +1,42 @@
 CHANGELOG — Vapor Rain Website (Version 2.0.1)
 =============================================
 
+2026-07-03  (later same day)
+----------------------------
+FIX: Login & Profile boxes now full-width on mobile.
+    - styles-phone.css: added a @media (max-width: 768px) block so .login-box
+      and .profile-box switch from the desktop 35.5vw absolutely-positioned
+      card to full screen width (width:auto + 15px side margins = 100% with
+      padding), flowing normally below the fixed 8vh account bar. .login-form
+      max-width lifted to 100% on mobile. Desktop layout unchanged.
+      (Wrapped in a media query because login.html/profile.html load
+      styles-phone.css at all widths, with no media attribute.)
+
+FIX: About Me page no longer permission-denied for logged-out visitors.
+    - Root cause: the new "pages" collection (pages/about-me) had no Firestore
+      security rule, so anonymous reads were denied. Blog/projects were already
+      public; pages was not.
+    - Added firestore.rules (reference copy in repo) granting public read of
+      pages + posts + projects, with writes restricted to the editor account.
+      ACTION REQUIRED: apply these in Firebase console (Firestore -> Rules), or
+      `firebase deploy --only firestore:rules` if the CLI is configured. The
+      live rules are the source of truth; the repo file is documentation.
+    - about.html: error handler now shows visitors a neutral "content
+      unavailable" message instead of a raw error string (real error still
+      logged to console). Edit button remains hidden for everyone except the
+      editor email (defense-in-depth alongside the write rule).
+
+DEPLOY: Recovered GitHub Pages from a stuck "errored" state (earlier today).
+    - Pages site object was wedged in status "errored" (valid builds + approved
+      cert, but publish step kept failing with "Deployment failed, try again
+      later"). Not caused by our changes, DNS, or the certificate.
+    - Fix: custom-domain toggle. Removed vaporrain.com (CNAME) -> next deploy
+      succeeded, clearing the wedge -> re-added the domain -> clean deploy
+      succeeded. Pages status back to "built"; site live (/, /about,
+      /favicon.svg all HTTP 200). Note: user-site Pages can't be deactivated
+      via API (DELETE 422), so the domain toggle is the recovery path.
+
+
 2026-07-03
 ----------
 FEATURE: About Me page now merged and loads from Firebase.

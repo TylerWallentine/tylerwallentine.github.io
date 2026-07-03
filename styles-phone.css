@@ -291,3 +291,30 @@ img {
   font-size: 15px;
   text-align: center;
 }
+
+/* ------------------------------
+   Login / Profile boxes
+   Desktop shows these as a narrow (35.5vw) absolutely-positioned card.
+   On mobile ONLY, make them span the full screen width (with padding) and
+   flow normally below the fixed account bar. Wrapped in a media query because
+   login.html / profile.html load this stylesheet at all widths (no media attr).
+------------------------------ */
+@media (max-width: 768px) {
+  .login-box,
+  .profile-box {
+    position: relative;
+    left: auto;
+    top: auto;
+    width: auto;          /* fills viewport minus the side margins below */
+    height: auto;
+    min-height: 60vh;
+    margin: 10vh 15px 30px;  /* top margin clears the 8vh fixed account bar */
+    padding: 24px 20px;
+    box-sizing: border-box;
+  }
+
+  /* Inner form should use the full available width on mobile */
+  .login-form {
+    max-width: 100%;
+  }
+}

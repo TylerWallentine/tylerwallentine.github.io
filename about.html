@@ -97,10 +97,11 @@
                         contentEl.innerHTML = "<p>No About Me content found yet.</p>";
                     }
                 } catch (err) {
+                    // Log the real error for debugging, but show visitors a
+                    // neutral message (never a raw "permission-denied", etc.).
                     console.error("Error loading About Me:", err);
                     contentEl.innerHTML =
-                        "<p><em>Couldn't load About Me content: " +
-                        (err.code || err.message || err) + "</em></p>";
+                        "<p><em>About Me content is currently unavailable. Please check back soon.</em></p>";
                 }
             }
 

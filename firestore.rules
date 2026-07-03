@@ -1,0 +1,57 @@
+rules_version = '2';
+
+// ============================================================
+// Firestore Security Rules — Vapor Rain Website
+// ------------------------------------------------------------
+// Reference copy kept in the repo. The LIVE rules live in the
+// Firebase console (Firestore Database -> Rules). If you have the
+// Firebase CLI set up, these can be deployed with:
+//     firebase deploy --only firestore:rules
+//
+// Goal: the public site (blog posts, projects, and the About Me
+// page) is readable by ANYONE (logged in or not). Only the editor
+// account may write.
+// ============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Single editor/admin account allowed to write content.
+    function isEditor() {
+      return request.auth != null
+        && request.auth.token.email == 'wallentinetyler@gmail.com';
+    }
+
+    // --- Static pages (e.g. pages/about-me) ---
+    // Publicly readable so the About Me page loads for everyone.
+    // Only the editor can create/update/delete.
+    match /pages/{pageId} {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+
+    // --- Blog posts --- (public read; editor writes)
+    match /posts/{postId} {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+
+    // --- Projects (and their phases subcollection) --- (public read; editor writes)
+    match /projects/{projectId} {
+      allow read: if true;
+      allow write: if isEditor();
+      match /phases/{phaseId} {
+        allow read: if true;
+        allow write: if isEditor();
+      }
+    }
+
+    // --- User profiles ---
+    // A signed-in user can read/write their own profile document.
+    // (Adjust to your needs; kept conservative here.)
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
