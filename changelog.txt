@@ -1,6 +1,63 @@
 CHANGELOG — Vapor Rain Website (Version 2.0.1)
 =============================================
 
+2026-07-03
+----------
+FEATURE: About Me page now merged and loads from Firebase.
+  Merged the content of the old (unpublished) h-aboutme.html into about.html
+  and adapted it to this version's conventions.
+
+    - about.html: added <main id="aboutme-container"> with the About Me
+      content area, and now loads the page body from Firestore doc
+      "pages/about-me" using the shared globals (window.firestoreDb,
+      window.fsDoc, window.fsGetDoc). Waits for the firebase globals to be
+      ready before running; shows a friendly message if the doc/content is
+      missing.
+    - Admin-gated inline editor: the "✏️ Edit About Me" button appears only
+      for wallentinetyler@gmail.com. Instead of linking to a non-existent
+      editor page, editing is done inline (contenteditable) and saved
+      straight back to Firestore (updateDoc, or setDoc on first create).
+    - modern.css: added styling for #aboutme-container, the content area,
+      and the inline editor buttons (none existed before).
+
+  Issues found / resolved during the merge:
+    - The old h-aboutme.html referenced functions/about-me-integration.js,
+      which does not exist in this version — dropped that dead reference; the
+      loading logic is now self-contained/inline.
+    - Old page used stale routing (h-login.html, post-editor.html, h-*.html)
+      that doesn't match this version — updated to current routes and globals.
+    - The old edit flow pointed at post-editor.html?aboutme=true, but the
+      current editor (j-posting.js/posting.html) only supports the "posts"
+      collection via ?edit= and has NO support for the pages/about-me doc.
+      Wired the working inline editor instead so editing actually functions.
+    - NOTE: the "pages/about-me" doc likely doesn't exist yet in Firestore;
+      sign in as admin and use the inline editor to create it. Confirm
+      Firestore security rules allow admin writes to pages/about-me.
+
+FEATURE: Site favicon (browser tab icon) added.
+    - New file favicon.svg: the same raindrop symbol from the site header,
+      styled as a black raindrop with a white outline
+      (fill="black" stroke="white").
+    - Linked <link rel="icon" type="image/svg+xml" href="/favicon.svg"> in
+      the <head> of index.html, about.html, blog.html, contact.html,
+      projects.html, login.html, profile.html, posting.html,
+      project-editor.html, and 404.html. Used a root-absolute path so it
+      resolves on the clean/extensionless routes.
+    - Skipped post.html (empty 0-byte file).
+    - Possible follow-up: add a favicon.ico / PNG fallback for older browsers.
+
+NOTE (no code change): GitHub Pages deploy failure investigated.
+    - "Error: Deployment failed, try again later." from actions/deploy-pages@v5
+      is a deploy-stage (GitHub-side) failure; the artifact built/uploaded
+      fine. Repo is ~11MB (well under limits), no _-prefixed files, no
+      committed workflow (uses built-in pages-build-deployment).
+    - Most likely transient (re-run the failed job); otherwise check custom
+      domain (vaporrain.com) DNS verification/HTTPS and the github-pages
+      environment's allowed deployment branches (ensure main is allowed).
+    - The "punycode is deprecated" DEP0040 warning in the log is harmless
+      noise from GitHub's Action dependencies and is unrelated to the failure.
+
+
 2026-07-02  (Version 2.0.1 — cloned from Version 2.0)
 ----------------------------------------------------
 FEATURE: Clean, extensionless URLs (e.g. vaporrain.com/projects, /blog).
