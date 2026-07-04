@@ -7,6 +7,10 @@ class ProjectPostEditor {
         // Optional hook: called with the image URL when the user marks an image
         // as the project's preview image. Lets a parent editor persist it.
         this.onPreviewImageSet = options.onPreviewImageSet || null;
+        // Storage location for inline images: <storageFolder>/<storageId>/<file>.
+        // Defaults keep old behaviour if a caller doesn't specify them.
+        this.storageFolder = options.storageFolder || 'projectImages';
+        this.storageId = options.storageId || 'misc';
         this.container.innerHTML = ` ... `;
 
         this.container.innerHTML = `
@@ -501,9 +505,9 @@ class ProjectPostEditor {
                 "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js"
             );
             const storage = getStorage(window.firebaseApp);
-            const uid = window.firebaseAuth?.currentUser?.uid || "anon";
             const ext = ((file.type.split('/')[1]) || 'png').replace('jpeg', 'jpg');
-            const path = `projectImages/${uid}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+            // Each project keeps its images in its own folder: projectImages/<projectId>/
+            const path = `${this.storageFolder}/${this.storageId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
             const imageRef = ref(storage, path);
 
             await uploadBytes(imageRef, file, { contentType: file.type || 'image/png' });

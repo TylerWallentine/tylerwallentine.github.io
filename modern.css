@@ -302,3 +302,40 @@ button:active { transform: translateY(0); }
 .aboutme-editor-buttons { display: flex; gap: 10px; }
 #save-aboutme-btn { background: #1f7a3d; }
 #save-aboutme-btn:hover { background: #26944a; }
+
+/* ===== Attachments — display (blog post viewer, projects, project editor) ===== */
+.phase-attachments { margin: 8px 0 14px; font-size: 0.95rem; }
+.attachments-label { font-weight: 600; margin-right: 8px; }
+.attachment-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 8px 6px 0;
+  background: rgba(2, 45, 51, 0.08);
+  border-radius: 6px;
+  padding: 3px 10px;
+}
+.attachment-item a { color: #022d33; text-decoration: none; word-break: break-word; }
+.attachment-item a:hover { text-decoration: underline; }
+.attachment-remove { cursor: pointer; font-weight: bold; color: #a00; }
+.attachments-empty { color: #888; font-style: italic; }
+
+/* Blog Post Viewer: "Attachments:" container on the right margin */
+.post-attachments-sidebar {
+  float: right;
+  width: 240px;
+  margin: 0 0 16px 24px;
+  padding: 14px 16px;
+  background: #f4f7f7;
+  border: 1px solid #dbe6e6;
+  border-radius: 10px;
+}
+.post-attachments-sidebar h3 { margin: 0 0 10px; font-size: 1.05rem; }
+.post-attachments-sidebar ul { list-style: none; margin: 0; padding: 0; }
+.post-attachments-sidebar li { margin-bottom: 8px; }
+.post-attachments-sidebar a { color: #022d33; text-decoration: none; word-break: break-word; }
+.post-attachments-sidebar a:hover { text-decoration: underline; }
+
+@media (max-width: 768px) {
+  .post-attachments-sidebar { float: none; width: auto; margin: 0 0 16px 0; }
+}

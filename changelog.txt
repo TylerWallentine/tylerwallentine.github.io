@@ -1,6 +1,46 @@
 CHANGELOG — Vapor Rain Website (Version 2.0.1)
 =============================================
 
+2026-07-03  (Storage framework: per-owner folders + attachments)
+---------------------------------------------------------------
+STORAGE LAYOUT: images/attachments now organized per post/project.
+    - Blog post images  -> images/<postId|draftId>/<file>
+    - Blog post attachments -> attachments/<postId|draftId>/<file>
+    - Project images    -> projectImages/<projectId>/<file>
+    - Phase attachments -> attachments/<projectId>/<phaseId>/<file>
+    - New posts have no id until first save, so pre-save uploads use a stable
+      per-session draft folder id; uploads after saving use the real postId.
+      (A post can therefore have a draft folder + its id folder; both resolve
+      fine since the doc stores the download URLs.) Projects always have an id
+      (created on "+ New Project"), so they always use projectImages/<id>/.
+    - The unused Storage "projects/" folder is not referenced by any code and
+      is safe to delete.
+
+FEATURE: Attachments for blog posts (Post Viewer right-margin container).
+    - j-posting.js (PostFirebaseIntegration): added an "Attach File" control to
+      the editor metadata panel; uploads to Storage; tracks this.attachments
+      ([{name,url,size,type}]); saved on the post doc; loaded when editing.
+    - blog-post-viewer.js: renders an <aside class="post-attachments-sidebar">
+      titled "Attachments:" on the right margin, ONLY when the post has
+      attachments. Stacks full-width under 768px.
+
+FEATURE: Per-phase attachments for projects (below title, above body).
+    - project-editor.js: each phase now has an "Attach" button (edit mode only),
+      an attachments list with remove buttons, upload to
+      attachments/<projectId>/<phaseId>/, and persistence of the phase's
+      `attachments` array on save (added to both phase-save writes).
+    - projects.html (reader modal): renders phase attachments between the phase
+      title and its body, only when present.
+
+STYLING: added attachment styles to modern.css (display: post sidebar, phase
+    lists) and s-posting.css (editor controls: Attach buttons, chips, remove).
+
+SECURITY RULES: storage.rules updated to match the live framework you provided
+    (match /{folder}/{userId}/{allPaths=**}; public read; write if owner OR
+    Firestore role "Editor" OR site-owner email). Reference copy in repo; live
+    rules remain the source of truth in the Firebase console.
+
+
 2026-07-03  (Project editor fixes)
 ----------------------------------
 FIX: Editor images now stored in Firebase Storage (not base64 in Firestore).

@@ -1,3 +1,14 @@
+// Uploads a File to Firebase Storage at `path` and returns its download URL.
+async function uploadFileToStorage(file, path) {
+  const { getStorage, ref, uploadBytes, getDownloadURL } = await import(
+    "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js"
+  );
+  const storage = getStorage(window.firebaseApp);
+  const fileRef = ref(storage, path);
+  await uploadBytes(fileRef, file, { contentType: file.type || "application/octet-stream" });
+  return await getDownloadURL(fileRef);
+}
+
 class ProjectEditor {
   constructor(projectId) {
     this.projectId = projectId;
@@ -164,6 +175,66 @@ renderPhase(phaseId, data) {
     titleEl.contentEditable = false; // locked by default
     phaseDiv.appendChild(titleEl);
 
+    // --- Phase attachments (rendered below the title, above the body) ---
+    let attachments = Array.isArray(data.attachments) ? [...data.attachments] : [];
+    let isEditing = false;
+
+    const attachmentsSection = document.createElement("div");
+    attachmentsSection.className = "phase-attachments";
+    phaseDiv.appendChild(attachmentsSection);
+
+    const attachInput = document.createElement("input");
+    attachInput.type = "file";
+    attachInput.multiple = true;
+    attachInput.style.display = "none";
+    phaseDiv.appendChild(attachInput);
+
+    const renderAttachments = () => {
+      // Hide entirely when there are no attachments and we're not editing.
+      if (!attachments.length && !isEditing) {
+        attachmentsSection.style.display = "none";
+        attachmentsSection.innerHTML = "";
+        return;
+      }
+      attachmentsSection.style.display = "block";
+      attachmentsSection.innerHTML =
+        `<span class="attachments-label">Attachments:</span>` +
+        (attachments.length
+          ? attachments.map((a, i) => `
+              <span class="attachment-item">
+                <a href="${a.url}" target="_blank" rel="noopener">📎 ${a.name}</a>
+                ${isEditing ? `<button type="button" class="attachment-remove" data-index="${i}" title="Remove">×</button>` : ""}
+              </span>`).join("")
+          : `<span class="attachments-empty">None yet.</span>`);
+    };
+
+    attachmentsSection.addEventListener("click", (e) => {
+      const rm = e.target.closest(".attachment-remove");
+      if (!rm) return;
+      attachments.splice(parseInt(rm.dataset.index, 10), 1);
+      this.hasUnsavedChanges = true;
+      renderAttachments();
+    });
+
+    attachInput.addEventListener("change", async () => {
+      const files = Array.from(attachInput.files || []);
+      attachInput.value = "";
+      for (const file of files) {
+        try {
+          const safeName = file.name.replace(/[^\w.\-]+/g, "_");
+          const path = `attachments/${this.projectId}/${phaseId}/${Date.now()}_${safeName}`;
+          const url = await uploadFileToStorage(file, path);
+          attachments.push({ name: file.name, url, size: file.size, type: file.type });
+          this.hasUnsavedChanges = true;
+          renderAttachments();
+          this.showSaveStatus(`Attached: ${file.name} (Save phase to keep)`);
+        } catch (err) {
+          console.error("Attachment upload failed:", err);
+          this.showSaveStatus("Attachment upload failed", true);
+        }
+      }
+    });
+
     // Editor container
     const editorContainer = document.createElement("div");
     editorContainer.className = "phase-editor";
@@ -185,6 +256,13 @@ renderPhase(phaseId, data) {
     deleteBtn.textContent = "Delete";
     deleteBtn.className = "delete-btn";
 
+    const attachBtn = document.createElement("button");
+    attachBtn.type = "button";
+    attachBtn.textContent = "📎 Attach";
+    attachBtn.className = "attach-btn";
+    attachBtn.style.display = "none"; // only in edit mode
+    attachBtn.addEventListener("click", () => attachInput.click());
+
     // Reorder controls
     const moveUpBtn = document.createElement("button");
     moveUpBtn.type = "button";
@@ -205,6 +283,7 @@ renderPhase(phaseId, data) {
     buttonRow.appendChild(moveDownBtn);
     buttonRow.appendChild(editBtn);
     buttonRow.appendChild(saveBtn);
+    buttonRow.appendChild(attachBtn);
     buttonRow.appendChild(deleteBtn);
 
     phaseDiv.appendChild(editorContainer);
@@ -214,6 +293,8 @@ renderPhase(phaseId, data) {
     // Attach editor. The onPreviewImageSet hook lets the project editor persist
     // whichever image the user marks as the preview (from any phase).
     const postEditor = new ProjectPostEditor(editorContainer, data.content || "", {
+      storageFolder: "projectImages",
+      storageId: this.projectId,   // images live under projectImages/<projectId>/
       onPreviewImageSet: (url) => {
         this.previewImage = url;
         this.hasUnsavedChanges = true;
@@ -231,6 +312,9 @@ renderPhase(phaseId, data) {
       toolbar.style.display = "flex"; // restore flex layout
       editBtn.style.display = "none";
       saveBtn.style.display = "inline-block";
+      isEditing = true;
+      attachBtn.style.display = "inline-block";
+      renderAttachments();
     };
 
     const exitEditMode = async () => {
@@ -239,7 +323,7 @@ renderPhase(phaseId, data) {
       const title = titleEl.textContent;
 
       try {
-        await window.fsUpdateDoc(phaseRef, { content, title });
+        await window.fsUpdateDoc(phaseRef, { content, title, attachments });
         this.showSaveStatus(`Saved: ${title}`);
       } catch (err) {
         console.error("Error saving phase:", err);
@@ -252,7 +336,13 @@ renderPhase(phaseId, data) {
       postEditor.container.querySelector(".toolbar").style.display = "none";
       saveBtn.style.display = "none";
       editBtn.style.display = "inline-block";
+      isEditing = false;
+      attachBtn.style.display = "none";
+      renderAttachments();
     };
+
+    // Initial render of any saved attachments (view mode).
+    renderAttachments();
 
     // Buttons
     editBtn.addEventListener("click", enterEditMode);
@@ -311,12 +401,16 @@ renderPhase(phaseId, data) {
     const title = titleEl.textContent;
 
     try {
-      await window.fsUpdateDoc(phaseRef, { content, title });
+      await window.fsUpdateDoc(phaseRef, { content, title, attachments });
       this.showSaveStatus(`Saved: ${title}`);
     } catch (err) {
       console.error("Error saving phase:", err);
       this.showSaveStatus("Save failed", true);
     }
+
+    isEditing = false;
+    attachBtn.style.display = "none";
+    renderAttachments();
 
     // lock both title and content again
     titleEl.contentEditable = false;

@@ -4,44 +4,40 @@ rules_version = '2';
 // Firebase Storage Security Rules — Vapor Rain Website
 // ------------------------------------------------------------
 // Reference copy kept in the repo. The LIVE rules live in the
-// Firebase console (Storage -> Rules). If you have the Firebase
-// CLI set up, deploy with:  firebase deploy --only storage
+// Firebase console (Storage -> Rules). Deploy with the CLI via:
+//     firebase deploy --only storage
 //
-// Editor images (pasted/uploaded into project & blog editors) and
-// preview images are now stored HERE in Storage (not as base64 in
-// Firestore). Downloads use tokenized URLs from getDownloadURL(),
-// which work for the public without a broad read rule; only the
-// editor account may upload.
+// Layout used by the site (folder / owner-id / rest-of-path):
+//   images/{postId}/<file>                    blog post images
+//   attachments/{postId}/<file>               blog post attachments
+//   projectImages/{projectId}/<file>          project images
+//   attachments/{projectId}/{phaseId}/<file>  per-phase project attachments
+//
+// The second path segment is treated as the "owner" id. Public read
+// is allowed for everything; writes require an authenticated user who
+// is the owner, has the Firestore role "Editor", or is the site owner.
 // ============================================================
 
 service firebase.storage {
   match /b/{bucket}/o {
 
-    function isEditor() {
-      return request.auth != null
-        && request.auth.token.email == 'wallentinetyler@gmail.com';
-    }
+    // Match any first-level folder (images, attachments, projectImages, etc.)
+    match /{folder}/{userId}/{allPaths=**} {
 
-    // Inline images pasted/uploaded inside the project editor.
-    match /projectImages/{userId}/{fileName} {
-      allow read: if true;            // public site can view images
-      allow write: if isEditor()      // only the editor can upload
-        && request.resource.size < 10 * 1024 * 1024          // 10 MB cap
-        && request.resource.contentType.matches('image/.*'); // images only
-    }
-
-    // Project / blog preview images.
-    match /previewImages/{userId}/{fileName} {
+      // Public read access for all uploaded content.
       allow read: if true;
-      allow write: if isEditor()
-        && request.resource.size < 10 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*');
-    }
 
-    // (Optional) legacy flat path some older uploads may have used.
-    match /previewImages/{fileName} {
-      allow read: if true;
-      allow write: if isEditor();
+      // Write rules:
+      // - Authenticated user, AND
+      // - Either the owner (userId segment matches their uid)
+      // - OR their Firestore role is "Editor"
+      // - OR their email is the site owner's.
+      allow write: if request.auth != null &&
+        (
+          request.auth.uid == userId ||
+          get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == "Editor" ||
+          get(/databases/(default)/documents/users/$(request.auth.uid)).data.email == "wallentinetyler@gmail.com"
+        );
     }
   }
 }

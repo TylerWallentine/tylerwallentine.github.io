@@ -363,36 +363,59 @@ class PostEditor {
     }
     
     async insertImage(file) {
-        const reader = new FileReader();
-        
-        reader.onload = (e) => {
-            const img = document.createElement('img');
-            img.src = e.target.result;
-            img.className = 'editor-image';
-            img.style.maxWidth = '100%';
-            img.style.height = 'auto';
-            
-            const container = document.createElement('div');
-            container.className = 'image-container';
-            container.appendChild(img);
-            
-            // Add resize handles
-            const handles = document.createElement('div');
-            handles.className = 'resize-handles';
-            handles.innerHTML = `
-                <div class="resize-handle nw"></div>
-                <div class="resize-handle ne"></div>
-                <div class="resize-handle sw"></div>
-                <div class="resize-handle se"></div>
-            `;
-            container.appendChild(handles);
-            
-            // Insert at cursor position
-            this.insertNodeAtCursor(container);
-            this.selectImage(container);
-        };
-        
-        reader.readAsDataURL(file);
+        // Build the image + container up front so we can show it while uploading.
+        const img = document.createElement('img');
+        img.className = 'editor-image';
+        img.style.maxWidth = '100%';
+        img.style.height = 'auto';
+
+        const container = document.createElement('div');
+        container.className = 'image-container';
+        container.appendChild(img);
+
+        const handles = document.createElement('div');
+        handles.className = 'resize-handles';
+        handles.innerHTML = `
+            <div class="resize-handle nw"></div>
+            <div class="resize-handle ne"></div>
+            <div class="resize-handle sw"></div>
+            <div class="resize-handle se"></div>
+        `;
+        container.appendChild(handles);
+
+        // Temporary local preview while uploading.
+        const localPreview = URL.createObjectURL(file);
+        img.src = localPreview;
+        img.setAttribute('data-uploading', 'true');
+        img.style.opacity = '0.6';
+
+        this.insertNodeAtCursor(container);
+        this.selectImage(container);
+
+        // Upload the ORIGINAL file to Firebase Storage under images/<postId|draft>/
+        // (not base64 in the Firestore doc), then swap in the hosted URL.
+        try {
+            const { getStorage, ref, uploadBytes, getDownloadURL } = await import(
+                "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js"
+            );
+            const storage = getStorage(window.firebaseApp);
+            const folderId = (window.postIntegration && window.postIntegration.getStorageFolderId)
+                ? window.postIntegration.getStorageFolderId() : 'misc';
+            const ext = ((file.type.split('/')[1]) || 'png').replace('jpeg', 'jpg');
+            const path = `images/${folderId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+            const imageRef = ref(storage, path);
+            await uploadBytes(imageRef, file, { contentType: file.type || 'image/png' });
+            const url = await getDownloadURL(imageRef);
+            img.src = url;
+            img.removeAttribute('data-uploading');
+            img.style.opacity = '';
+        } catch (err) {
+            console.error("Image upload failed:", err);
+            alert("Image upload failed: " + (err.code || err.message || err));
+            container.remove();
+        } finally {
+            URL.revokeObjectURL(localPreview);
+        }
     }
     
     selectImage(container) {
@@ -894,8 +917,22 @@ class PostFirebaseIntegration {
     constructor(editor) {
         this.editor = editor;
         this.postId = null; // For editing existing posts
+        this.attachments = [];       // [{name, url, size, type}]
+        this._draftFolderId = null;  // used for a new post's Storage folder pre-save
         this.setupSaveButton();
         this.checkForEditMode();
+    }
+
+    // Storage folder id for this post's images/attachments. Uses the real post
+    // id once it exists; otherwise a stable draft id for the current session.
+    getStorageFolderId() {
+        if (this.postId) return this.postId;
+        if (!this._draftFolderId) {
+            this._draftFolderId = (window.crypto && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : 'draft_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+        }
+        return this._draftFolderId;
     }
     
     setupSaveButton() {
@@ -1045,6 +1082,15 @@ class PostFirebaseIntegration {
                 </label>
             </div>
             
+            <div class="metadata-group">
+                <label>Attachments</label>
+                <div class="attachments-input-container">
+                    <button type="button" class="attach-file-btn">📎 Attach File</button>
+                    <input type="file" id="attachment-upload" multiple style="display:none;">
+                </div>
+                <div class="attachments-display" id="attachments-display"></div>
+            </div>
+
             <div class="save-status" id="save-status"></div>
         `;
         
@@ -1061,7 +1107,53 @@ class PostFirebaseIntegration {
         
         this.tags = [];
         this.populateCategoryDropdown();
+        this.setupAttachments();
 
+    }
+
+    setupAttachments() {
+        const btn = document.querySelector('.attach-file-btn');
+        const input = document.getElementById('attachment-upload');
+        if (!btn || !input) return;
+        btn.addEventListener('click', () => input.click());
+        input.addEventListener('change', async () => {
+            const files = Array.from(input.files || []);
+            input.value = '';
+            for (const file of files) {
+                try {
+                    const { getStorage, ref, uploadBytes, getDownloadURL } = await import(
+                        "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js"
+                    );
+                    const storage = getStorage(window.firebaseApp);
+                    const safeName = file.name.replace(/[^\w.\-]+/g, '_');
+                    const path = `attachments/${this.getStorageFolderId()}/${Date.now()}_${safeName}`;
+                    const fileRef = ref(storage, path);
+                    await uploadBytes(fileRef, file, { contentType: file.type || 'application/octet-stream' });
+                    const url = await getDownloadURL(fileRef);
+                    this.attachments.push({ name: file.name, url, size: file.size, type: file.type });
+                    this.renderAttachments();
+                    this.showStatus(`Attached: ${file.name}`, 'success');
+                } catch (err) {
+                    console.error('Attachment upload failed:', err);
+                    this.showStatus('Attachment upload failed: ' + (err.code || err.message || err), 'error');
+                }
+            }
+        });
+    }
+
+    renderAttachments() {
+        const display = document.getElementById('attachments-display');
+        if (!display) return;
+        display.innerHTML = (this.attachments || []).map((a, i) => `
+            <span class="attachment-item">
+                <a href="${a.url}" target="_blank" rel="noopener">📎 ${a.name}</a>
+                <span class="attachment-remove" onclick="postIntegration.removeAttachment(${i})">×</span>
+            </span>`).join('');
+    }
+
+    removeAttachment(index) {
+        this.attachments.splice(index, 1);
+        this.renderAttachments();
     }
     
     addTag() {
@@ -1199,7 +1291,8 @@ class PostFirebaseIntegration {
             authorId: window.firebaseAuth.currentUser.uid,
             wordCount: plainText.trim().split(/\s+/).length,
             lastModified: new Date(),
-            previewImage: previewImageUrl || this.editor.previewImage || null
+            previewImage: previewImageUrl || this.editor.previewImage || null,
+            attachments: this.attachments || []
 
         };
 
@@ -1299,6 +1392,10 @@ class PostFirebaseIntegration {
             // Tags
             this.tags = post.tags || [];
             this.updateTagsDisplay();
+
+            // Attachments
+            this.attachments = post.attachments || [];
+            this.renderAttachments();
 
             // Content
             this.editor.editor.innerHTML = post.content || '';

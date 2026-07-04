@@ -245,6 +245,15 @@ async loadPost(postId, animate = true) {
                     </div>
                 ` : ''}
                 
+                ${post.attachments && post.attachments.length ? `
+                    <aside class="post-attachments-sidebar">
+                        <h3>Attachments:</h3>
+                        <ul>
+                            ${post.attachments.map(a => `<li><a href="${a.url}" target="_blank" rel="noopener">📎 ${a.name}</a></li>`).join('')}
+                        </ul>
+                    </aside>
+                ` : ''}
+
                 <div class="post-full-content">
                     ${post.content || '<p>No content available.</p>'}
                 </div>
