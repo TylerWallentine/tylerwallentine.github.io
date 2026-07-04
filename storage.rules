@@ -1,0 +1,47 @@
+rules_version = '2';
+
+// ============================================================
+// Firebase Storage Security Rules — Vapor Rain Website
+// ------------------------------------------------------------
+// Reference copy kept in the repo. The LIVE rules live in the
+// Firebase console (Storage -> Rules). If you have the Firebase
+// CLI set up, deploy with:  firebase deploy --only storage
+//
+// Editor images (pasted/uploaded into project & blog editors) and
+// preview images are now stored HERE in Storage (not as base64 in
+// Firestore). Downloads use tokenized URLs from getDownloadURL(),
+// which work for the public without a broad read rule; only the
+// editor account may upload.
+// ============================================================
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isEditor() {
+      return request.auth != null
+        && request.auth.token.email == 'wallentinetyler@gmail.com';
+    }
+
+    // Inline images pasted/uploaded inside the project editor.
+    match /projectImages/{userId}/{fileName} {
+      allow read: if true;            // public site can view images
+      allow write: if isEditor()      // only the editor can upload
+        && request.resource.size < 10 * 1024 * 1024          // 10 MB cap
+        && request.resource.contentType.matches('image/.*'); // images only
+    }
+
+    // Project / blog preview images.
+    match /previewImages/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isEditor()
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // (Optional) legacy flat path some older uploads may have used.
+    match /previewImages/{fileName} {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+  }
+}

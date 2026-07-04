@@ -1,9 +1,12 @@
 // Advanced Post Editor JavaScript - scripts.js
 
 class ProjectPostEditor {
-    constructor(container, initialContent = "") {
+    constructor(container, initialContent = "", options = {}) {
         if (!container) throw new Error("ProjectPostEditor needs a container element");
         this.container = container;
+        // Optional hook: called with the image URL when the user marks an image
+        // as the project's preview image. Lets a parent editor persist it.
+        this.onPreviewImageSet = options.onPreviewImageSet || null;
         this.container.innerHTML = ` ... `;
 
         this.container.innerHTML = `
@@ -178,6 +181,10 @@ class ProjectPostEditor {
                 // Add preview option
                 if (confirm("Set this image as the preview image?")) {
                     this.previewImage = e.target.src;   // ✅ save the preview image src
+                    // Notify the parent editor (project editor) so it can persist it.
+                    if (typeof this.onPreviewImageSet === "function") {
+                        this.onPreviewImageSet(e.target.src);
+                    }
                     this.showNotification("Preview image set!");
                 }
             } else if (!e.target.closest('.image-container') && !e.target.closest('.resize-handle')) {
@@ -456,36 +463,62 @@ class ProjectPostEditor {
     }
     
     async insertImage(file) {
-        const reader = new FileReader();
-        
-        reader.onload = (e) => {
-            const img = document.createElement('img');
-            img.src = e.target.result;
-            img.className = 'editor-image';
-            img.style.maxWidth = '100%';
-            img.style.height = 'auto';
-            
-            const container = document.createElement('div');
-            container.className = 'image-container';
-            container.appendChild(img);
-            
-            // Add resize handles
-            const handles = document.createElement('div');
-            handles.className = 'resize-handles';
-            handles.innerHTML = `
-                <div class="resize-handle nw"></div>
-                <div class="resize-handle ne"></div>
-                <div class="resize-handle sw"></div>
-                <div class="resize-handle se"></div>
-            `;
-            container.appendChild(handles);
-            
-            // Insert at cursor position
-            this.insertNodeAtCursor(container);
-            this.selectImage(container);
-        };
-        
-        reader.readAsDataURL(file);
+        // Build the image + container up front so we can show it while uploading.
+        const img = document.createElement('img');
+        img.className = 'editor-image';
+        img.style.maxWidth = '100%';
+        img.style.height = 'auto';
+
+        const container = document.createElement('div');
+        container.className = 'image-container';
+        container.appendChild(img);
+
+        // Add resize handles
+        const handles = document.createElement('div');
+        handles.className = 'resize-handles';
+        handles.innerHTML = `
+            <div class="resize-handle nw"></div>
+            <div class="resize-handle ne"></div>
+            <div class="resize-handle sw"></div>
+            <div class="resize-handle se"></div>
+        `;
+        container.appendChild(handles);
+
+        // Show a temporary local preview while the upload runs.
+        const localPreview = URL.createObjectURL(file);
+        img.src = localPreview;
+        img.setAttribute('data-uploading', 'true');
+        img.style.opacity = '0.6';
+
+        // Insert at cursor position immediately.
+        this.insertNodeAtCursor(container);
+        this.selectImage(container);
+
+        // Upload the ORIGINAL file to Firebase Storage (not base64 in the DB),
+        // then swap the <img> src for the hosted download URL.
+        try {
+            const { getStorage, ref, uploadBytes, getDownloadURL } = await import(
+                "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js"
+            );
+            const storage = getStorage(window.firebaseApp);
+            const uid = window.firebaseAuth?.currentUser?.uid || "anon";
+            const ext = ((file.type.split('/')[1]) || 'png').replace('jpeg', 'jpg');
+            const path = `projectImages/${uid}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+            const imageRef = ref(storage, path);
+
+            await uploadBytes(imageRef, file, { contentType: file.type || 'image/png' });
+            const url = await getDownloadURL(imageRef);
+
+            img.src = url;                       // hosted URL replaces the local blob
+            img.removeAttribute('data-uploading');
+            img.style.opacity = '';
+        } catch (err) {
+            console.error("Image upload failed:", err);
+            alert("Image upload failed: " + (err.code || err.message || err));
+            container.remove();                  // don't leave a broken/blob image behind
+        } finally {
+            URL.revokeObjectURL(localPreview);
+        }
     }
     
     selectImage(container) {

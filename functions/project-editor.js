@@ -14,6 +14,7 @@ class ProjectEditor {
     this.addPhaseBtn = document.getElementById("add-phase-btn");
 
     this.tags = [];
+    this.previewImage = null; // URL of the image chosen as the project's preview
     this.init();
   }
 
@@ -69,6 +70,7 @@ async init() {
       this.excerptInput.value = data.excerpt || "";
       this.tagsInput.value = (data.tags || []).join(", ");
       this.featuredCheckbox.checked = !!data.featured;
+      this.previewImage = data.previewImage || null;
     }
   }
 
@@ -209,8 +211,15 @@ renderPhase(phaseId, data) {
     phaseDiv.appendChild(buttonRow);
     this.phasesContainer.appendChild(phaseDiv);
 
-    // Attach editor
-    const postEditor = new ProjectPostEditor(editorContainer, data.content || "");
+    // Attach editor. The onPreviewImageSet hook lets the project editor persist
+    // whichever image the user marks as the preview (from any phase).
+    const postEditor = new ProjectPostEditor(editorContainer, data.content || "", {
+      onPreviewImageSet: (url) => {
+        this.previewImage = url;
+        this.hasUnsavedChanges = true;
+        this.showSaveStatus("\u2b50 Preview image set \u2014 remember to Save the project.");
+      }
+    });
 
     // --- Shared edit/save helpers ---
     const enterEditMode = () => {
@@ -372,6 +381,29 @@ renderPhase(phaseId, data) {
       .join("");
   }
 
+  // Ensure the preview image is a hosted URL. New editor images already are
+  // Storage URLs; this only uploads if a legacy base64 (data:) image was chosen.
+  async resolvePreviewImageUrl() {
+    const src = this.previewImage;
+    if (!src || !src.startsWith("data:")) return src || null;
+    try {
+      const { getStorage, ref, uploadString, getDownloadURL } = await import(
+        "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js"
+      );
+      const storage = getStorage(window.firebaseApp);
+      const uid = window.firebaseAuth?.currentUser?.uid || "anon";
+      const imageRef = ref(storage, `previewImages/${uid}/${Date.now()}.png`);
+      await uploadString(imageRef, src, "data_url");
+      const url = await getDownloadURL(imageRef);
+      this.previewImage = url;
+      return url;
+    } catch (err) {
+      console.error("Error uploading preview image:", err);
+      this.showSaveStatus("⚠️ Failed to upload preview image.", true);
+      return null;
+    }
+  }
+
   async saveProject() {
     const title = this.titleInput.value.trim() || "Untitled Project";
     const excerpt = this.excerptInput.value.trim();
@@ -382,6 +414,8 @@ renderPhase(phaseId, data) {
       const user = window.firebaseAuth.currentUser;
       if (!user) throw new Error("Not logged in");
 
+      const previewImage = await this.resolvePreviewImageUrl();
+
       if (!this.projectId) {
         // 🆕 First save → create the project directly in Firestore
         const projectsRef = window.fsCollection(window.firestoreDb, "projects");
@@ -390,6 +424,7 @@ renderPhase(phaseId, data) {
           excerpt,
           tags,
           featured,
+          previewImage: previewImage || null,
           owner: user.uid,
           confirmed: true,
           published: false,
@@ -406,6 +441,7 @@ renderPhase(phaseId, data) {
           excerpt,
           tags,
           featured,
+          previewImage: previewImage || null,
           confirmed: true,
           updatedAt: new Date()
         });

@@ -1,6 +1,49 @@
 CHANGELOG — Vapor Rain Website (Version 2.0.1)
 =============================================
 
+2026-07-03  (Project editor fixes)
+----------------------------------
+FIX: Editor images now stored in Firebase Storage (not base64 in Firestore).
+    - j-project-posting.js insertImage(): previously used FileReader
+      readAsDataURL and embedded a base64 data URL as the <img> src, so every
+      pasted/uploaded image was saved INSIDE the Firestore document. That
+      bloated docs, hit the 1MB document limit, and forced tiny/low-quality
+      images. Now uploads the original File to Firebase Storage
+      (projectImages/<uid>/<timestamp>.<ext>) via uploadBytes and swaps in the
+      hosted getDownloadURL. Shows a temporary local preview while uploading;
+      removes the image if the upload fails. Paste/upload handlers already
+      await this, so content is never saved with a temporary blob URL.
+
+FIX: "Set as preview image" now actually persists for projects.
+    - Root cause: the click handler set previewImage only on the per-phase
+      ProjectPostEditor instance, but functions/project-editor.js never read or
+      saved it, so the project doc's previewImage was never written.
+    - ProjectPostEditor now accepts an options.onPreviewImageSet callback and
+      fires it when an image is marked as preview.
+    - project-editor.js: tracks this.previewImage, loads it in loadProject(),
+      passes the callback to each phase editor, and writes previewImage in
+      saveProject() (both create + update). Added resolvePreviewImageUrl() as a
+      safety net that uploads any legacy base64 preview to Storage before save.
+    - NOTE: images are now Storage URLs, so the previewImage is just that URL.
+
+FIX: LaTeX no longer shows duplicate raw text on project/blog pages.
+    - Root cause: KaTeX renders TWO parts — a visible .katex-html (which carries
+      aria-hidden="true", but that only hides it from SCREEN READERS, not
+      visually) and a .katex-mathml fallback that is hidden ONLY by KaTeX's own
+      stylesheet. projects.html and blog.html never loaded katex.min.css, so the
+      MathML fallback rendered as duplicate raw text (e.g. "2/x^22/x^2").
+    - Fix: added the KaTeX 0.16.8 stylesheet to projects.html and blog.html
+      (matches the editor's KaTeX version). The aria-hidden attribute was a red
+      herring; the missing CSS was the real cause. Fixes existing content too.
+
+SECURITY RULES (action required): added storage.rules (reference copy).
+    - Editor/preview images now live in Firebase Storage, so Storage rules must
+      allow the editor to write projectImages/ and previewImages/ (public read;
+      editor-only write). Apply in Firebase console (Storage -> Rules) or
+      `firebase deploy --only storage`. Download URLs are tokenized, so public
+      viewing works without a broad read rule.
+
+
 2026-07-03  (later same day)
 ----------------------------
 FIX: Login & Profile boxes now full-width on mobile.
