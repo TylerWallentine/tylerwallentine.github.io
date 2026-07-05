@@ -36,12 +36,28 @@ setTimeout(() => {
     }
   };
 
+  function tagsHtml(tags) {
+    if (!Array.isArray(tags) || !tags.length) return '';
+    return `<div class="project-card-tags">${tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>`;
+  }
+
+  // A real preview image displays larger + is click-to-zoom; the default
+  // vapor-rain logo keeps its small icon size.
+  function imageMarkup(previewImage, extraClass) {
+    const hasImg = !!previewImage;
+    const cls = hasImg
+      ? `${extraClass} has-custom-image project-img-zoom`
+      : `${extraClass} default-logo`;
+    return `<img src="${previewImage || 'default-preview.png'}" class="${cls}" alt="">`;
+  }
+
   function displayFeaturedProject(project) {
     const date = project.createdAt?.toDate?.() || new Date();
     document.getElementById('featured-project').innerHTML = `
       <div class="featured-project-content">
-        <img src="${project.previewImage || 'default-preview.png'}" class="featured-project-image">
+        ${imageMarkup(project.previewImage, 'featured-project-image')}
         <h2>${project.title}</h2>
+        ${tagsHtml(project.tags)}
         <p>${project.excerpt}</p>
         <button class="read-more-btn" data-project-id="${project.id}">Read More</button>
       </div>
@@ -53,8 +69,9 @@ setTimeout(() => {
       const date = p.createdAt?.toDate?.() || new Date();
       return `
         <article class="project-card">
-          <img src="${p.previewImage || 'default-preview.png'}" class="project-preview-image">
+          ${imageMarkup(p.previewImage, 'project-preview-image')}
           <h3>${p.title}</h3>
+          ${tagsHtml(p.tags)}
           <p>${p.excerpt}</p>
           <span class="status">${p.status || ''}</span>
           <button class="read-more-btn" data-project-id="${p.id}">Read More</button>

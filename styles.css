@@ -1937,15 +1937,27 @@ label[for="project-tags"] {
 }
 
 .featured-project-image, .project-preview-image {
-  width: 100%;
-  max-width: 100px;          /* Limit image width */
-
-  object-fit: cover;         /* Crop instead of stretching */
   border-radius: 8px;
   display: block;
-  
-
 }
+
+/* Default vapor-rain logo keeps its small icon size */
+.featured-project-image.default-logo, .project-preview-image.default-logo {
+  width: 100%;
+  max-width: 100px;
+  object-fit: cover;
+}
+
+/* Real preview images display larger: ~75% of the card width, aspect kept */
+.featured-project-image.has-custom-image, .project-preview-image.has-custom-image {
+  width: 75%;
+  max-width: 75%;
+  height: auto;
+  object-fit: contain;
+  margin: 0 auto 10px;
+}
+
+.project-img-zoom { cursor: zoom-in; }
 
 
 /* 🔹 Modal Overlay */

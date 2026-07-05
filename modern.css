@@ -339,3 +339,33 @@ button:active { transform: translateY(0); }
 @media (max-width: 768px) {
   .post-attachments-sidebar { float: none; width: auto; margin: 0 0 16px 0; }
 }
+
+/* ===== Project tags (under title on cards + in the project modal) ===== */
+.project-card-tags,
+.project-modal-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 10px;
+}
+
+/* ===== Fullscreen image lightbox ===== */
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  cursor: zoom-out;
+  padding: 20px;
+}
+.image-lightbox.active { display: flex; }
+.image-lightbox img {
+  max-width: 92%;
+  max-height: 92%;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}

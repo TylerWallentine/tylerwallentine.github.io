@@ -174,6 +174,7 @@
       <button id="close-project-modal" class="close-btn">✕</button>
       <button id="edit-project-btn" class="read-more-btn" style="display:none;">✏ Edit Project</button>
       <h2 id="modal-project-title"></h2>
+      <div id="modal-project-tags" class="project-modal-tags"></div>
       <p id="modal-project-excerpt"></p>
       <img id="modal-project-image" class="featured-project-image" alt="">
       <div id="modal-project-phases" class="project-phases-scroll"></div>
@@ -274,8 +275,18 @@
 
       titleEl.textContent = project.title || "Untitled Project";
       excerptEl.textContent = project.excerpt || "";
+
+      // Tags under the title in the project page (modal)
+      const tagsEl = document.getElementById("modal-project-tags");
+      const tags = Array.isArray(project.tags) ? project.tags : [];
+      tagsEl.innerHTML = tags.map(t => `<span class="tag">${t}</span>`).join("");
+      tagsEl.style.display = tags.length ? "flex" : "none";
+
       imageEl.src = project.previewImage || "";
       imageEl.style.display = project.previewImage ? "block" : "none";
+      // Larger display + click-to-zoom only for real preview images.
+      imageEl.classList.toggle("has-custom-image", !!project.previewImage);
+      imageEl.classList.toggle("project-img-zoom", !!project.previewImage);
 
       // Remember which project is open (used by the Edit button)
       modal.dataset.projectId = projectId;
@@ -343,8 +354,41 @@
     }
   }
 });
+</script>
 
+<!-- 🔹 Fullscreen image lightbox (click any project image to enlarge) -->
+<div id="image-lightbox" class="image-lightbox">
+  <img id="image-lightbox-img" src="" alt="">
+</div>
 
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const lightbox = document.getElementById("image-lightbox");
+    const lightboxImg = document.getElementById("image-lightbox-img");
+
+    // Open when any zoomable project image is clicked (works for dynamically
+    // loaded cards and the modal image via event delegation).
+    document.body.addEventListener("click", (e) => {
+      const img = e.target.closest(".project-img-zoom");
+      if (!img || !img.src) return;
+      lightboxImg.src = img.src;
+      lightbox.classList.add("active");
+    });
+
+    // Close on click anywhere in the overlay.
+    lightbox.addEventListener("click", () => {
+      lightbox.classList.remove("active");
+      lightboxImg.src = "";
+    });
+
+    // Close on Escape.
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        lightbox.classList.remove("active");
+        lightboxImg.src = "";
+      }
+    });
+  });
 </script>
 </body>
 </html>
