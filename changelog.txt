@@ -1,6 +1,29 @@
 CHANGELOG — Vapor Rain Website (Version 2.0.1)
 =============================================
 
+2026-07-05  (Project cards/modal: images + tags)
+------------------------------------------------
+FEATURE: Custom project preview images now display larger + zoomable.
+    - project-loader.js: images are tagged has-custom-image + project-img-zoom
+      when a real previewImage exists; the default vapor-rain logo keeps its
+      small icon size (default-logo).
+    - styles.css: .default-logo stays max-width 100px; .has-custom-image renders
+      at 75% of the card width, height auto (aspect ratio retained), centered.
+    - projects.html: added a fullscreen image lightbox — clicking any
+      .project-img-zoom image (cards or modal) enlarges it; click/Escape closes.
+
+FEATURE: Tags shown under the title on cards AND in the project modal.
+    - project-loader.js: renders <div class="project-card-tags"> under the
+      title of featured + recent cards.
+    - projects.html: added #modal-project-tags under the modal title, populated
+      in openProjectModal(); modal preview image also gets larger/zoom styling.
+    - modern.css: styling for .project-card-tags/.project-modal-tags and the
+      .image-lightbox overlay.
+
+NOTE: A GitHub Pages deploy failed once transiently ("Deployment failed, try
+    again later" with status "building"); a re-trigger deployed successfully.
+
+
 2026-07-03  (Storage framework: per-owner folders + attachments)
 ---------------------------------------------------------------
 STORAGE LAYOUT: images/attachments now organized per post/project.
