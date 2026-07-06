@@ -175,8 +175,8 @@
       <button id="edit-project-btn" class="read-more-btn" style="display:none;">✏ Edit Project</button>
       <h2 id="modal-project-title"></h2>
       <div id="modal-project-tags" class="project-modal-tags"></div>
-      <p id="modal-project-excerpt"></p>
-      <img id="modal-project-image" class="featured-project-image" alt="">
+      <!--<p id="modal-project-excerpt"></p>-->
+      <!--<img id="modal-project-image" class="featured-project-image" alt="">-->
       <div id="modal-project-phases" class="project-phases-scroll"></div>
     </div>
   </div>
@@ -219,8 +219,8 @@
   const closeBtn = document.getElementById("close-project-modal");
 
   const titleEl = document.getElementById("modal-project-title");
-  const excerptEl = document.getElementById("modal-project-excerpt");
-  const imageEl = document.getElementById("modal-project-image");
+  // const excerptEl = document.getElementById("modal-project-excerpt");
+  // const imageEl = document.getElementById("modal-project-image");
   const phasesContainer = document.getElementById("modal-project-phases");
   const editBtn = document.getElementById("edit-project-btn");
 
@@ -254,10 +254,18 @@
   });
 
   // 🔹 Close modal
-  closeBtn.addEventListener("click", () => (modal.style.display = "none"));
+  closeBtn.addEventListener("click", () => setProjectModalOpen(false));
+
   window.addEventListener("click", (e) => {
-    if (e.target === modal) modal.style.display = "none";
+    if (e.target === modal) setProjectModalOpen(false);
   });
+
+  function setProjectModalOpen(open) {
+    modal.style.display = open ? "flex" : "none";
+    document.body.style.overflow = open ? "hidden" : "";
+
+  }
+
 
   // 🔹 Load and show project data
   async function openProjectModal(projectId) {
@@ -274,7 +282,7 @@
       const project = projectSnap.data();
 
       titleEl.textContent = project.title || "Untitled Project";
-      excerptEl.textContent = project.excerpt || "";
+      //excerptEl.textContent = project.excerpt || "";
 
       // Tags under the title in the project page (modal)
       const tagsEl = document.getElementById("modal-project-tags");
@@ -282,18 +290,18 @@
       tagsEl.innerHTML = tags.map(t => `<span class="tag">${t}</span>`).join("");
       tagsEl.style.display = tags.length ? "flex" : "none";
 
-      imageEl.src = project.previewImage || "";
-      imageEl.style.display = project.previewImage ? "block" : "none";
+      //imageEl.src = project.previewImage || "";
+      //imageEl.style.display = project.previewImage ? "block" : "none";
       // Larger display + click-to-zoom only for real preview images.
-      imageEl.classList.toggle("has-custom-image", !!project.previewImage);
-      imageEl.classList.toggle("project-img-zoom", !!project.previewImage);
+      //imageEl.classList.toggle("has-custom-image", !!project.previewImage);
+      //imageEl.classList.toggle("project-img-zoom", !!project.previewImage);
 
       // Remember which project is open (used by the Edit button)
       modal.dataset.projectId = projectId;
 
       // Show the modal immediately so a phase/permission error can't hide it
       phasesContainer.innerHTML = "<p>Loading phases...</p>";
-      modal.style.display = "flex";
+      setProjectModalOpen(true);
 
       // Show the Edit button only for editors
       editBtn.style.display = "none";

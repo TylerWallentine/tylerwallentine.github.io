@@ -1969,7 +1969,7 @@ label[for="project-tags"] {
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  overflow-y: auto;
+
 }
 
 /* 🔹 Modal Content */

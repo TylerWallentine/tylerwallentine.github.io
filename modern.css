@@ -460,6 +460,6 @@ button:active { transform: translateY(0); }
   .project-card .project-preview-image {
     width: 100%;
     max-width: 100%;
-    height: 180px;
+    height: 90px;
   }
 }
