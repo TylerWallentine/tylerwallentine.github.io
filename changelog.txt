@@ -1,6 +1,31 @@
 CHANGELOG — Vapor Rain Website (Version 2.0.1)
 =============================================
 
+2026-07-05  (Drafts management)
+-------------------------------
+FEATURE: Editor-only drafts management on the Blog page.
+    - New functions/drafts-manager.js (loaded by blog.html). For the editor
+      only (auth email == owner, OR Firestore role "editor"), shows a light
+      yellow bar at the top of the Blog: "You have X unpublished drafts. Click
+      here to manage them." Bar only appears when X > 0.
+    - Clicking opens a modal listing all unpublished drafts (posts where
+      published == false), newest first, each with Edit and Delete.
+      * Edit -> opens the post in the existing in-page editor overlay
+        (/posting?edit=<id>), falling back to navigation.
+      * Delete -> confirms, deletes the doc from Firestore, refreshes the
+        list + bar count.
+    - Query uses a single-field where('published','==',false) (no composite
+      index needed) and sorts client-side by lastModified/createdAt.
+    - Non-editors never see the bar or modal. Deletes are also gated by the
+      Firestore write rule (editor only) as defense-in-depth.
+    - Styling for .drafts-bar and .drafts-modal added to modern.css.
+    - Exposes window.refreshDraftsBar() so other code can refresh after saves.
+    - NOTE: requires Firestore rules to let the editor READ unpublished posts
+      (the reference firestore.rules uses `posts: allow read: if true`, which
+      covers it). If your live rules restrict reads to published==true, add an
+      editor exception so the drafts query can see them.
+
+
 2026-07-05  (Project cards/modal: images + tags)
 ------------------------------------------------
 FEATURE: Custom project preview images now display larger + zoomable.

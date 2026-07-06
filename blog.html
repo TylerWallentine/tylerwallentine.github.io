@@ -21,6 +21,7 @@
     <!-- Load existing Firebase from j-firebase.js (optional) -->
     <script type="module" src="j-firebase.js"></script>
     <script src="functions/blog-post-viewer.js"></script>
+    <script src="functions/drafts-manager.js"></script>
     <!-- Blog-specific Firebase functions -->
     <script type="module">
         // Import Firebase functions
@@ -394,6 +395,11 @@
             <a href="/blog" class="grid-item-small">Blog</a>
             <a href="/contact" class="grid-item-small">Contact</a>
         </nav>
+    </div>
+
+    <!-- Editor-only drafts bar (shown by functions/drafts-manager.js) -->
+    <div id="drafts-bar" class="drafts-bar" role="button" tabindex="0" style="display:none;">
+        <span id="drafts-bar-text"></span>
     </div>
 
     <!-- Dynamic content area -->
@@ -864,6 +870,15 @@ async function toggleCategoryFilter(category, isChecked) {
 
 
 </script>
+
+<!-- Editor-only drafts management modal -->
+<div id="drafts-modal" class="drafts-modal">
+  <div class="drafts-modal-content">
+    <button id="drafts-modal-close" class="close-btn">✕</button>
+    <h2>Unpublished Drafts</h2>
+    <div id="drafts-list"><p>Loading drafts…</p></div>
+  </div>
+</div>
 
 </body>
 
