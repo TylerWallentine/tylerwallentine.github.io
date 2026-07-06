@@ -70,11 +70,13 @@ setTimeout(() => {
       return `
         <article class="project-card">
           ${imageMarkup(p.previewImage, 'project-preview-image')}
-          <h3>${p.title}</h3>
-          ${tagsHtml(p.tags)}
-          <p>${p.excerpt}</p>
-          <span class="status">${p.status || ''}</span>
-          <button class="read-more-btn" data-project-id="${p.id}">Read More</button>
+          <div class="project-card-body">
+            <h3>${p.title}</h3>
+            ${tagsHtml(p.tags)}
+            <p>${p.excerpt}</p>
+            <span class="status">${p.status || ''}</span>
+            <button class="read-more-btn" data-project-id="${p.id}">Read More</button>
+          </div>
         </article>
       `;
     }).join('');

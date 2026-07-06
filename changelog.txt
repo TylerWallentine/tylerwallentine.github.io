@@ -1,6 +1,18 @@
 CHANGELOG — Vapor Rain Website (Version 2.0.1)
 =============================================
 
+2026-07-05  (Project card thumbnail layout)
+-------------------------------------------
+CHANGE: Recent project cards now use a left-thumbnail layout.
+    - project-loader.js: wrapped each card's title/tags/excerpt/status/button
+      in a .project-card-body div.
+    - modern.css: .project-card is now a flexbox row — a fixed 140x140 image
+      thumbnail on the left (cover for photos, contain for the default logo)
+      with the text body to the right. Stacks vertically under 600px.
+    - Click-to-zoom still works (custom images keep .project-img-zoom). The
+      featured project + project modal keep their larger image display.
+
+
 2026-07-05  (Drafts management)
 -------------------------------
 FEATURE: Editor-only drafts management on the Blog page.

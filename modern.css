@@ -431,3 +431,35 @@ button:active { transform: translateY(0); }
 }
 .draft-edit { background: #022d33; color: #fff; }
 .draft-delete { background: #c0392b; color: #fff; }
+
+/* ===== Recent project cards: image as a left thumbnail beside text ===== */
+.project-card {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.project-card .project-preview-image {
+  flex: 0 0 auto;
+  width: 140px;
+  height: 140px;
+  max-width: 140px;
+  margin: 0;              /* override the stacked/centered image styling */
+  border-radius: 8px;
+}
+.project-card .project-preview-image.has-custom-image { object-fit: cover; }   /* photos fill the box */
+.project-card .project-preview-image.default-logo    { object-fit: contain; } /* logo not cropped */
+.project-card-body {
+  flex: 1 1 auto;
+  min-width: 0;           /* let long text wrap inside the flex row */
+}
+.project-card-body h3 { margin-top: 0; }
+
+/* Stack image on top again on very narrow screens */
+@media (max-width: 600px) {
+  .project-card { flex-direction: column; }
+  .project-card .project-preview-image {
+    width: 100%;
+    max-width: 100%;
+    height: 180px;
+  }
+}
