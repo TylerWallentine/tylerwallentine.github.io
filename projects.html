@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="modern.css">
     <link rel="stylesheet" href="newsletter.css">
+    <link rel="stylesheet" href="contact.css">
     <!-- KaTeX stylesheet: required so rendered LaTeX displays correctly.
          Without it, KaTeX's hidden MathML fallback shows as duplicate raw
          text next to the rendered math (e.g. "2/x^2" appears twice). -->
@@ -22,6 +23,9 @@
     <script src="j-modules.js"></script>
     <script src="functions/newsletter.js"></script>
     <script src="functions/project-loader.js"></script>
+    <script src="functions/project-search.js"></script>
+    <script src="functions/project-drafts-manager.js"></script>
+    <script src="functions/contact.js"></script>
 
 
     <script>
@@ -128,47 +132,109 @@
     <!-- Projects Filter Bar -->
 <section class="projects-filter-bar">
   <div class="filters-wrapper">
-    <div id="new-project-btn-container" class="new-project-container"></div> <!-- Button goes here -->
-
-    <label>
-      <input type="checkbox" value="Design"> Design
-    </label>
-    <label>
-      <input type="checkbox" value="Research"> Research
-    </label>
-    <label>
-      <input type="checkbox" value="Prototype"> Prototype
-    </label>
-    <label>
-      <input type="checkbox" value="Simulation"> Simulation
-    </label>
-    <label>
-      <input type="checkbox" value="Control Systems"> Control Systems
-    </label>
+    <div id="new-project-btn-container" class="new-project-container"></div> <!-- New Project button (editor only) -->
   </div>
-  
 </section>
+
+<!-- Editor-only project drafts bar (shown by functions/project-drafts-manager.js) -->
+<div id="project-drafts-bar" class="drafts-bar" role="button" tabindex="0" style="display:none;">
+  <span id="project-drafts-bar-text"></span>
+</div>
 
 
     
   <!-- Dynamic content area -->
   <div id="page-content">
-    <main class="projects-layout">
-    <section class="featured-section">
-        <h2 class="section-title">Featured Project</h2>
-        <div id="featured-project" class="featured-project">
-        <div class="loading-message">Loading featured project...</div>
-        </div>
-    </section>
+    <div class="projects-layout">
+      <main class="projects-main">
+        <!-- Search results (shown only while searching/filtering) -->
+        <section id="project-search-results" class="project-search-results" style="display:none;">
+          <h2 class="section-title">Search Results</h2>
+          <div id="project-results-list" class="recent-projects"></div>
+        </section>
 
-    <section class="recent-projects-section">
-        <h2 class="section-title">Recent Projects</h2>
-        <div id="recent-projects" class="recent-projects">
-        <div class="loading-message">Loading recent projects...</div>
-        </div>
-    </section>
+        <section class="featured-section">
+            <h2 class="section-title">Featured Project</h2>
+            <div id="featured-project" class="featured-project">
+            <div class="loading-message">Loading featured project...</div>
+            </div>
+        </section>
 
-    <!-- 🔹 Project Reader Modal -->
+        <section class="recent-projects-section">
+            <h2 class="section-title">Recent Projects</h2>
+            <div id="recent-projects" class="recent-projects">
+            <div class="loading-message">Loading recent projects...</div>
+            </div>
+        </section>
+      </main>
+
+      <!-- Right-hand sidebar: search + contact -->
+      <aside class="projects-sidebar">
+        <div class="search-section">
+          <h3>Search Projects</h3>
+          <div class="search-box">
+            <input type="text" id="project-search" placeholder="Search projects...">
+            <button class="search-btn" id="project-search-btn">🔍</button>
+          </div>
+
+          <div class="project-filter-group">
+            <label for="project-tag-filter">Tag</label>
+            <select id="project-tag-filter">
+              <option value="">All tags</option>
+            </select>
+          </div>
+
+          <div class="project-filter-group">
+            <label for="project-date-from">From</label>
+            <input type="date" id="project-date-from">
+            <label for="project-date-to">To</label>
+            <input type="date" id="project-date-to">
+          </div>
+
+          <button class="clear-search-btn" id="project-search-clear" style="display:none;">Clear Search</button>
+        </div>
+
+        <div class="projects-contact">
+          <h3>Get in touch</h3>
+          <form id="contact-form" class="contact-form" novalidate>
+            <div class="cf-field">
+              <label for="cf-name">Name</label>
+              <input type="text" id="cf-name" name="name" autocomplete="name" required>
+            </div>
+            <div class="cf-field">
+              <label for="cf-email">Email</label>
+              <input type="email" id="cf-email" name="email" autocomplete="email" required>
+            </div>
+            <div class="cf-field">
+              <label for="cf-subject">Subject</label>
+              <input type="text" id="cf-subject" name="subject">
+            </div>
+            <div class="cf-field">
+              <label for="cf-message">Message</label>
+              <textarea id="cf-message" name="message" required></textarea>
+            </div>
+            <!-- Honeypot: hidden from humans, traps bots -->
+            <div class="cf-hp" aria-hidden="true">
+              <label>Leave this empty<input type="text" name="_gotcha" tabindex="-1" autocomplete="off"></label>
+            </div>
+            <button type="submit" class="cf-submit">Send message</button>
+            <p class="cf-message" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Editor-only project drafts management modal -->
+  <div id="project-drafts-modal" class="drafts-modal">
+    <div class="drafts-modal-content">
+      <button id="project-drafts-modal-close" class="close-btn">✕</button>
+      <h2>Unpublished Projects</h2>
+      <div id="project-drafts-list"><p>Loading drafts…</p></div>
+    </div>
+  </div>
+
+  <!-- 🔹 Project Reader Modal -->
   <div id="project-modal" class="project-modal">
     <div class="project-modal-content">
       <button id="close-project-modal" class="close-btn">✕</button>
@@ -180,38 +246,6 @@
       <div id="modal-project-phases" class="project-phases-scroll"></div>
     </div>
   </div>
-
-
-    <!-- Collapsible Tags Sidebar -->
-<div class="tags-sidebar collapsed" id="tagsSidebar">
-  <div class="tags-toggle" id="tagsToggle">🏷 Tags</div>
-  <div class="tags-content">
-    <h3>Search by Tag</h3>
-    <ul id="tagsList">
-      <li><button>Design</button></li>
-      <li><button>Research</button></li>
-      <li><button>Prototype</button></li>
-      <li><button>Simulation</button></li>
-      <li><button>Control Systems</button></li>
-    </ul>
-  </div>
-</div>
-
-    </main>
-  </div>
-
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const sidebar = document.getElementById("tagsSidebar");
-    const toggle = document.getElementById("tagsToggle");
-
-    if (toggle && sidebar) {
-      toggle.addEventListener("click", () => {
-        sidebar.classList.toggle("collapsed");
-      });
-    }
-  });
-</script>
 
 <script>
   document.addEventListener("DOMContentLoaded", () => {

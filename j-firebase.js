@@ -125,11 +125,26 @@ async function findUserByEmail(email) {
 
 window.findUserByEmail = findUserByEmail;
 
+// Read a user's own profile by uid (doc id == uid). This works under rules
+// that allow `isSelf(uid)` reads, unlike findUserByEmail's collection query
+// (which Firestore denies for non-editors because it filters by email field).
+async function getUserProfileById(uid) {
+    if (!uid) return null;
+    try {
+        const snap = await getDoc(doc(db, "users", uid));
+        return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+    } catch (error) {
+        console.error("Error reading user profile by id:", error);
+        return null;
+    }
+}
+window.getUserProfileById = getUserProfileById;
+
 // Keep your main listener as is
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         console.log('User is logged in:', user.email);
-        const userProfile = await findUserByEmail(user.email);
+        const userProfile = await getUserProfileById(user.uid);
         
         const firstName = userProfile?.firstName;
         const middleInitial = userProfile?.middleInitial;
@@ -142,11 +157,17 @@ onAuthStateChanged(auth, async (user) => {
             displayName = `${firstName} ${lastName}` || user.email.split('@')[0];
         }
         
+        // Admin = site owner email OR Firestore role "editor".
+        window.__isAdminUser =
+            user.email === "wallentinetyler@gmail.com" ||
+            (userProfile?.role || "").toLowerCase() === "editor";
+
         // Trigger UI updates manually
         updateAccountBar(document.querySelector('.account-bar'), displayName);
         
     } else {
         console.log('User is not logged in');
+        window.__isAdminUser = false;
         updateAccountBar(document.querySelector('.account-bar'), null);
     }
 });
@@ -157,11 +178,50 @@ function updateAccountBar(accountBarElement, displayName) {
     
     const accountLink = accountBarElement.querySelector('.account');
     if (!accountLink) return;
+
+    // Clear any previously-built admin dropdown so repeated calls stay clean.
+    const existingMenu = accountBarElement.querySelector('.account-menu');
+    if (existingMenu) existingMenu.remove();
+    accountLink.onclick = null;
     
     if (displayName) {
         accountLink.textContent = displayName;
-        accountLink.href = '/profile';
         accountLink.classList.add('logged-in');
+
+        if (window.__isAdminUser) {
+            // Admin: the name becomes a dropdown (Profile / Admin Console / Log out).
+            accountLink.href = '#';
+            accountLink.setAttribute('aria-haspopup', 'true');
+            accountLink.setAttribute('aria-expanded', 'false');
+
+            const menu = document.createElement('div');
+            menu.className = 'account-menu';
+            menu.innerHTML =
+                '<a href="/profile" class="account-menu-item">My Profile</a>' +
+                '<a href="/admin" class="account-menu-item">Admin Console</a>' +
+                '<a href="#" class="account-menu-item account-logout">Log out</a>';
+            accountBarElement.appendChild(menu);
+
+            accountLink.onclick = (e) => {
+                e.preventDefault();
+                const open = menu.classList.toggle('open');
+                accountLink.setAttribute('aria-expanded', open ? 'true' : 'false');
+            };
+            document.addEventListener('click', (e) => {
+                if (!accountBarElement.contains(e.target)) menu.classList.remove('open');
+            });
+            const logout = menu.querySelector('.account-logout');
+            if (logout) logout.addEventListener('click', async (e) => {
+                e.preventDefault();
+                try {
+                    const { getAuth, signOut } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+                    await signOut(window.firebaseAuth || getAuth(window.firebaseApp));
+                    window.location.href = '/';
+                } catch (err) { console.error('Logout failed:', err); }
+            });
+        } else {
+            accountLink.href = '/profile';
+        }
     } else {
         accountLink.textContent = 'Log In / Sign Up';
         accountLink.href = '/login';

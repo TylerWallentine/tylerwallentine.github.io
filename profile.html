@@ -63,8 +63,9 @@
                     console.log('Populating profile for user:', user.email);
                     
                     try {
-                        // Get user profile from Firestore (assuming you have findUserByEmail function available)
-                        const userProfile = await window.findUserByEmail(user.email);
+                        // Read the user's own profile by uid (works under isSelf rules;
+                        // an email query would be denied for non-editors).
+                        const userProfile = await window.getUserProfileById(user.uid);
                         
                         if (userProfile) {
                             updateProfileFields(userProfile, user);

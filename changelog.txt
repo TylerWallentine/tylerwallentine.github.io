@@ -1,6 +1,72 @@
 CHANGELOG — Vapor Rain Website (Version 2.0.1)
 =============================================
 
+2026-07-06  (Projects search + Admin: user management, approvals, drafts)
+------------------------------------------------------------------------
+FEATURE: Projects page search + right-hand sidebar.
+    - functions/project-search.js + two-column .projects-layout: search
+      published projects by keyword, existing tag (auto-populated dropdown),
+      and/or createdAt date range. Results replace featured/recent while active.
+    - Removed the filter-bar checkboxes and the collapsible Tags pull-out menu.
+    - Duplicated the contact form into the sidebar under the search panel
+      (contact.css + functions/contact.js added to projects.html).
+    - project-loader.js exposes a shared renderProjectCard() reused by search.
+
+FIX (post-rules): non-editors could not read their own profile.
+    - findUserByEmail() is a collection query (by email field) that Firestore
+      denies under isSelf(uid) rules. Added getUserProfileById(uid) (getDoc by
+      uid) and switched the account bar + profile.html to it.
+FIX: admin role dropdown showed everyone as "user" (case-sensitive compare);
+    now lowercases the stored role before matching.
+RULES: hardened userRole() with an exists() guard (missing user doc no longer
+    errors the rule) -- re-publish firestore.rules in the console.
+
+
+FEATURE: Project draft review (mirror of blog drafts).
+    - functions/project-drafts-manager.js + markup in projects.html: editor-only
+      yellow bar "You have X unpublished projects..." -> modal to Edit
+      (/project-editor?id=) or Delete (removes phases subcollection + project).
+      Reuses the .drafts-bar/.drafts-modal styles.
+
+FEATURE: Admin dropdown on the account bar.
+    - j-firebase.js updateAccountBar(): for admins (owner email OR role editor),
+      the account name becomes a dropdown -> My Profile / Admin Console / Log out.
+      Non-admins keep the plain /profile link. Sets window.__isAdminUser.
+    - CSS: .account-menu in modern.css.
+
+FEATURE: Account approval flag at signup.
+    - register.html now writes approved:false and disabled:false (and fixed the
+      stale redirect h-login.html -> /login). Approval gates future engagement
+      (commenting), NOT login/browsing.
+
+FEATURE: Admin Console (/admin, editor-gated).
+    - admin.html + functions/admin-console.js. Non-admins see "Access denied".
+    - Users: change role (user/writer/editor), Approve pending accounts,
+      Disable/Enable ("delete" = disable; no backend auth deletion), and toggle
+      the linked subscription.
+    - Pending approval requests section (users with approved != true).
+    - Subscribers: list + activate/deactivate, plus a "Normalize subscribers"
+      button that adds status:1 where missing and sets an `id` FIELD equal to the
+      matching user's uid (matched by email). NOTE: this sets an id *field* --
+      a doc's actual ID can't be changed in place.
+    - CSS: .admin-* in modern.css.
+
+SECURITY RULES (action required): firestore.rules updated.
+    - isEditor() now also accepts Firestore role == "editor" (via get()).
+    - users: read own or editor; create own at signup; normal users may edit
+      their own profile but NOT role/approved/disabled; editors may change all;
+      delete = editor only.
+    - subscribers: read/update/delete editor-only; create open (future signup).
+    - Must be published in the Firebase console to take effect.
+
+NOTES:
+    - "Delete account" is DISABLE only (per decision) to avoid backend work.
+      True Firebase Auth deletion needs the Admin SDK server (server/app.js
+      deployed) -- deferred.
+    - Role hierarchy: user < writer < editor. Editor treated as admin.
+    - All of the above is in the WORKING COPY only (not committed/pushed).
+
+
 2026-07-05  (Project card thumbnail layout)
 -------------------------------------------
 CHANGE: Recent project cards now use a left-thumbnail layout.

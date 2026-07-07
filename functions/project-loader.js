@@ -64,22 +64,26 @@ setTimeout(() => {
     `;
   }
 
-  function displayRecentProjects(projects) {
-    document.getElementById('recent-projects').innerHTML = projects.map(p => {
-      const date = p.createdAt?.toDate?.() || new Date();
-      return `
+  // Single source of truth for a project card (used by the recent feed AND
+  // the search results, so they stay visually identical).
+  function renderProjectCard(p) {
+    return `
         <article class="project-card">
           ${imageMarkup(p.previewImage, 'project-preview-image')}
           <div class="project-card-body">
-            <h3>${p.title}</h3>
+            <h3>${p.title || 'Untitled Project'}</h3>
             ${tagsHtml(p.tags)}
-            <p>${p.excerpt}</p>
+            <p>${p.excerpt || ''}</p>
             <span class="status">${p.status || ''}</span>
             <button class="read-more-btn" data-project-id="${p.id}">Read More</button>
           </div>
         </article>
       `;
-    }).join('');
+  }
+  window.renderProjectCard = renderProjectCard;
+
+  function displayRecentProjects(projects) {
+    document.getElementById('recent-projects').innerHTML = projects.map(renderProjectCard).join('');
   }
 
   // Mark ready

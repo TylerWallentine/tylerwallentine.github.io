@@ -189,6 +189,8 @@
           lastName,
           alias,
           role: "user",
+          approved: false,   // must be approved by an editor to comment/engage
+          disabled: false,   // "deleted" accounts are disabled (no backend auth delete)
           createdAt: new Date()
         });
 
@@ -196,7 +198,7 @@
         feedback.className = "success";
 
         setTimeout(() => {
-          window.location.href = "h-login.html";
+          window.location.href = "/login";
         }, 1500);
       } catch (error) {
         console.error(error);
