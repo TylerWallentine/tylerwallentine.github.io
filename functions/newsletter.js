@@ -30,10 +30,26 @@
     // When using Zoho Campaigns' hosted signup form, set this to the form's
     // POST action URL and list field names Zoho generates. Until then the
     // subscribe() call below runs in PLACEHOLDER mode (no network request).
-    provider: "PLACEHOLDER",            // "PLACEHOLDER" | "zoho"
-    zohoFormActionUrl: "TODO_ZOHO_FORM_ACTION_URL",
-    zohoEmailFieldName: "TODO_ZOHO_EMAIL_FIELD",   // e.g. "CONTACT_EMAIL"
-    zohoExtraFields: {},                // any hidden fields Zoho requires (listname, etc.)
+    provider: "zoho",                   // "PLACEHOLDER" | "zoho"
+    zohoFormActionUrl: "https://zgnp-zngp.maillist-manage.com/weboptin.zc",
+    zohoEmailFieldName: "CONTACT_EMAIL",
+    // Hidden fields copied from the Zoho web-optin embed. These identify the
+    // form/list to Zoho; the empty ones are intentionally blank (Zoho fills or
+    // ignores them). Zoho sends the (double) opt-in confirmation email.
+    zohoExtraFields: {
+      zx: "135c11367",
+      zcvers: "3.0",
+      zctd: "1173a63da1f42bf71",
+      zc_formIx: "3z0596d5df2f80ed5eea3820d1bfe30a3c987a7a228cf7cfc036e24c126582ed97",
+      mode: "OptinCreateView",
+      submitType: "optinCustomView",
+      formType: "QuickForm",
+      zc_trackCode: "ZCFORMVIEW",
+      viewFrom: "URL_ACTION",
+      oldListIds: "",
+      zcld: "",
+      emailReportId: ""
+    },
 
     // UI copy
     popupTitle: "Stay in the loop",

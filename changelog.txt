@@ -1,6 +1,22 @@
 CHANGELOG — Vapor Rain Website (Version 2.0.1)
 =============================================
 
+2026-07-06  (Zoho Campaigns newsletter integration)
+---------------------------------------------------
+FEATURE: Newsletter now live via Zoho Campaigns.
+    - functions/newsletter.js: provider switched PLACEHOLDER -> "zoho".
+      Existing popup / opt-in UI POSTs subscribers into a hidden iframe to the
+      Zoho web-optin endpoint (zgnp-zngp.maillist-manage.com/weboptin.zc) using
+      the form's hidden fields (zx, zctd, zc_formIx, mode, etc.). Zoho sends the
+      double opt-in confirmation email; we keep our own styling.
+    - Verified: a test subscribe lands as a contact in Zoho.
+    - Note: no-cors submit means we can't read Zoho's response, so subscribe()
+      always resolves success (Zoho's confirmation email is the real signal).
+      The "Invalid X-Frame-Options 'none'" console warning is benign (malformed
+      header on Zoho's response page; ignored by the browser).
+    - Firestore `subscribers` mirror NOT added yet (Zoho is source of truth).
+
+
 2026-07-06  (Projects search + Admin: user management, approvals, drafts)
 ------------------------------------------------------------------------
 FEATURE: Projects page search + right-hand sidebar.
