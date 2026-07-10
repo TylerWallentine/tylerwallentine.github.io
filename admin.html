@@ -64,11 +64,11 @@
 
     <section class="admin-section">
       <div class="admin-section-head">
-        <h2>Subscribers</h2>
-        <button id="normalize-subscribers-btn" class="admin-btn">Normalize subscribers</button>
+        <h2>Subscribers <span id="subscribers-count" class="admin-badge">0</span></h2>
+        <button id="sync-subscribers" class="admin-btn">Sync from Zoho</button>
       </div>
-      <p class="admin-hint">“Normalize” adds <code>status: 1</code> to any subscriber missing it and sets an
-        <code>id</code> field equal to the matching user account's uid (matched by email).</p>
+      <p class="admin-hint">Each subscriber is keyed by email. “Linked account” shows the matching
+        user (matched automatically by email) or “N/A” if they subscribed without an account.</p>
       <div id="subscribers-table" class="admin-list"><p>Loading subscribers…</p></div>
     </section>
 

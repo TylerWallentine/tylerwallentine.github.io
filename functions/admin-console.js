@@ -49,10 +49,41 @@
 
   function subForUser(u) {
     return (
-      subscribersCache.find((s) => s.id === u.id) ||
+      subscribersCache.find((s) => s.linkedaccount === u.id) ||
       subscribersCache.find((s) => (s.email || "").toLowerCase() === (u.email || "").toLowerCase()) ||
       null
     );
+  }
+
+  // Auto-link subscribers to user accounts by matching email. Any subscriber
+  // whose linkedaccount is missing/"N/A" but whose email matches a user gets
+  // its linkedaccount set to that user's uid. Runs once on load.
+  async function autoLinkSubscribers() {
+    for (const s of subscribersCache) {
+      const linked = s.linkedaccount;
+      const isLinked = linked && linked !== "N/A" && usersCache.some((u) => u.id === linked);
+      if (isLinked) continue;
+      const match = usersCache.find(
+        (u) => (u.email || "").toLowerCase() === (s.email || "").toLowerCase()
+      );
+      if (match && s.linkedaccount !== match.id) {
+        try {
+          await updateSubscriber(s.id, { linkedaccount: match.id });
+        } catch (e) {
+          console.warn("Auto-link failed for", s.id, e);
+        }
+      }
+    }
+  }
+
+  function linkedUserFor(s) {
+    const linked = s.linkedaccount;
+    if (linked && linked !== "N/A") {
+      return usersCache.find((u) => u.id === linked) || null;
+    }
+    return usersCache.find(
+      (u) => (u.email || "").toLowerCase() === (s.email || "").toLowerCase()
+    ) || null;
   }
 
   // ---------- Rendering ----------
@@ -66,7 +97,8 @@
 
     el.innerHTML = usersCache.map((u) => {
       const sub = subForUser(u);
-      const subState = sub ? (sub.active ? "Active" : "Inactive") : "—";
+      const st = subStatus(sub);
+      const subState = sub ? subLabel(st) : "—";
       const currentRole = (u.role || "user").toLowerCase();
       const roleOpts = ROLES.map((r) =>
         `<option value="${r}" ${currentRole === r ? "selected" : ""}>${r}</option>`).join("");
@@ -88,8 +120,8 @@
           </div>
           <div class="admin-cell">
             <label class="admin-mini">Subscription</label>
-            <span class="admin-tag">${subState}</span>
-            ${sub ? `<button class="admin-btn admin-sub-toggle">${sub.active ? "Deactivate" : "Activate"}</button>` : ""}
+            <span class="admin-tag ${st === "active" ? "ok" : st === "pending" ? "pending" : ""}">${subState}</span>
+            ${sub ? `<button class="admin-btn admin-sub-toggle">${st === "active" ? "Deactivate" : "Activate"}</button>` : ""}
           </div>
           <div class="admin-cell">
             <button class="admin-btn ${u.disabled ? "" : "danger"} admin-disable">
@@ -117,21 +149,50 @@
       </div>`).join("");
   }
 
+  // Subscriber status: prefer the explicit `status` field; fall back to the
+  // legacy `active` boolean for docs written before statuses existed.
+  function subStatus(s) {
+    if (!s) return null;
+    if (s.status) return s.status;                 // "pending" | "active" | "inactive"
+    return (s.active !== false && s.active !== 0) ? "active" : "inactive";
+  }
+  function subLabel(st) {
+    return st === "active" ? "Active"
+         : st === "pending" ? "Awaiting Opt-In"
+         : "Inactive";
+  }
+
   function renderSubscribers() {
     const el = $("subscribers-table");
+    const countEl = $("subscribers-count");
+    if (countEl) countEl.textContent = String(subscribersCache.length);
     if (!subscribersCache.length) { el.innerHTML = "<p>No subscribers found.</p>"; return; }
-    el.innerHTML = subscribersCache.map((s) => `
-      <div class="admin-row" data-sub="${s.id}">
+    el.innerHTML = subscribersCache.map((s) => {
+      const linkedUser = linkedUserFor(s);
+      const linkedLabel = linkedUser ? esc(userName(linkedUser)) : "N/A";
+      const st = subStatus(s);
+      const label = subLabel(st);
+      const tagClass = st === "active" ? "ok" : st === "pending" ? "pending" : "";
+      let actionBtn;
+      if (st === "pending") actionBtn = `<button class="admin-btn admin-sub-activate">Mark Active</button>`;
+      else if (st === "active") actionBtn = `<button class="admin-btn admin-sub-toggle2">Deactivate</button>`;
+      else actionBtn = `<button class="admin-btn admin-sub-toggle2">Reactivate</button>`;
+      return `
+      <div class="admin-row ${st === "active" ? "" : "is-disabled"}" data-sub="${esc(s.id)}">
         <div class="admin-cell admin-cell-main">
-          <span class="admin-user-name">${esc(s.alias || s.username || "—")}</span>
-          <span class="admin-user-email">${esc(s.email || "")}</span>
+          <span class="admin-user-name">${esc(s.email || "—")}</span>
+          <span class="admin-user-email">Linked account: ${linkedLabel}</span>
         </div>
-        <div class="admin-cell"><label class="admin-mini">Status</label><span class="admin-tag">${esc(s.status ?? "—")}</span></div>
-        <div class="admin-cell"><label class="admin-mini">Linked uid</label><span class="admin-tag">${s.id && usersCache.some(u=>u.id===s.id) ? "yes" : (s.id ? esc(s.id) : "—")}</span></div>
         <div class="admin-cell">
-          <button class="admin-btn admin-sub-toggle2">${s.active ? "Deactivate" : "Activate"}</button>
+          <label class="admin-mini">Status</label>
+          <span class="admin-tag ${tagClass}">${label}</span>
         </div>
-      </div>`).join("");
+        <div class="admin-cell">${actionBtn}</div>
+        <div class="admin-cell">
+          <button class="admin-btn danger admin-sub-delete">Delete</button>
+        </div>
+      </div>`;
+    }).join("");
   }
 
   function renderAll() { renderPending(); renderUsers(); renderSubscribers(); }
@@ -148,22 +209,16 @@
     if (s) Object.assign(s, data);
   }
 
-  async function normalizeSubscribers() {
-    if (!confirm("Normalize all subscribers (add status:1 where missing, set id = matching user's uid)?")) return;
-    status("Normalizing subscribers…");
-    let changed = 0;
-    for (const s of subscribersCache) {
-      const patch = {};
-      if (s.status === undefined || s.status === null) patch.status = 1;
-      const match = usersCache.find((u) => (u.email || "").toLowerCase() === (s.email || "").toLowerCase());
-      if (match && s.id !== match.id) patch.id = match.id; // store uid as a FIELD (doc id can't be changed in place)
-      else if (match && s.id === undefined) patch.id = match.id;
-      if (Object.keys(patch).length) {
-        try { await updateSubscriber(s.id, patch); changed++; } catch (e) { console.error("normalize failed for", s.id, e); }
-      }
-    }
-    renderSubscribers();
-    status(`Normalized ${changed} subscriber${changed === 1 ? "" : "s"}.`);
+  // Subscriber active/inactive/delete all flow through the Cloud Functions so
+  // Zoho Campaigns and Firestore stay in sync. After each call we reload the
+  // subscribers from Firestore to reflect the server's canonical state.
+  async function subscribeEmail(email) { await window.callFunction("subscribe", { email }); }
+  async function unsubscribeEmail(email) { await window.callFunction("unsubscribe", { email }); }
+  async function deleteSubscriberEmail(email) { await window.callFunction("unsubscribe", { email, delete: true }); }
+
+  async function reloadSubscribers() {
+    const sSnap = await window.fsGetDocs(window.fsCollection(window.firestoreDb, "subscribers")).catch(() => ({ docs: [] }));
+    subscribersCache = sSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
   }
 
   function wire() {
@@ -183,15 +238,60 @@
         } else if (e.target.classList.contains("admin-sub-toggle")) {
           const u = usersCache.find((x) => x.id === row.dataset.uid);
           const sub = subForUser(u);
-          if (sub) { await updateSubscriber(sub.id, { active: !sub.active }); renderAll(); status("Subscription updated."); }
+          const email = ((sub && sub.email) || u.email || "").toLowerCase();
+          if (email) {
+            const active = subStatus(sub) === "active";
+            status(active ? "Unsubscribing…" : "Subscribing…");
+            await (active ? unsubscribeEmail(email) : subscribeEmail(email));
+            await reloadSubscribers(); renderAll(); status("Subscription updated.");
+          }
         } else if (e.target.classList.contains("admin-sub-toggle2")) {
           const s = subscribersCache.find((x) => x.id === row.dataset.sub);
-          if (s) { await updateSubscriber(s.id, { active: !s.active }); renderSubscribers(); status("Subscription updated."); }
+          if (s && s.email) {
+            const active = subStatus(s) === "active";
+            status(active ? "Unsubscribing…" : "Subscribing…");
+            await (active ? unsubscribeEmail(s.email.toLowerCase()) : subscribeEmail(s.email.toLowerCase()));
+            await reloadSubscribers(); renderSubscribers(); status("Subscription updated.");
+          }
+        } else if (e.target.classList.contains("admin-sub-activate")) {
+          // Manual override: mark an "Awaiting Opt-In" subscriber Active without
+          // waiting for the Zoho confirmation callback (editor-only per rules).
+          const s = subscribersCache.find((x) => x.id === row.dataset.sub);
+          if (s) {
+            status("Marking active…");
+            await updateSubscriber(s.id, { status: "active", active: true });
+            renderSubscribers(); status("Subscriber marked active.");
+          }
+        } else if (e.target.classList.contains("admin-sub-delete")) {
+          const s = subscribersCache.find((x) => x.id === row.dataset.sub);
+          if (s && confirm(`Delete subscriber ${s.email || s.id}? This also unsubscribes them from Zoho.`)) {
+            status("Deleting…");
+            await deleteSubscriberEmail((s.email || "").toLowerCase());
+            await reloadSubscribers(); renderSubscribers(); status("Subscriber deleted.");
+          }
         }
       } catch (err) {
         console.error(err); status("Action failed: " + (err.code || err.message || err), true);
       }
     });
+
+    // Sync the subscriber list FROM Zoho (editor-only Cloud Function).
+    const syncBtn = $("sync-subscribers");
+    if (syncBtn) {
+      syncBtn.addEventListener("click", async () => {
+        syncBtn.disabled = true;
+        status("Syncing subscribers from Zoho…");
+        try {
+          const res = await window.callFunction("syncSubscribers", {});
+          await reloadSubscribers(); renderAll();
+          status(`Synced from Zoho: ${res.active} active, ${res.unsub} unsubscribed (${res.created} new).`);
+        } catch (err) {
+          console.error(err); status("Sync failed: " + (err.code || err.message || err), true);
+        } finally {
+          syncBtn.disabled = false;
+        }
+      });
+    }
 
     // Role changes
     document.body.addEventListener("change", async (e) => {
@@ -201,9 +301,6 @@
       try { await updateUser(row.dataset.uid, { role: e.target.value }); status("Role updated."); }
       catch (err) { console.error(err); status("Failed to update role: " + (err.code || err.message || err), true); }
     });
-
-    const normBtn = $("normalize-subscribers-btn");
-    if (normBtn) normBtn.addEventListener("click", normalizeSubscribers);
   }
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -221,6 +318,7 @@
         $("admin-console").style.display = "";
         try {
           await loadAll();
+          await autoLinkSubscribers();
           renderAll();
         } catch (err) {
           console.error("Admin load failed:", err);

@@ -1,6 +1,67 @@
 CHANGELOG — Vapor Rain Website (Version 2.0.1)
 =============================================
 
+2026-07-09  (Newsletter: tolerant unsubscribe + Sync-from-Zoho)
+---------------------------------------------------------------
+FIX: Deactivating a subscription failed with functions/internal "Contact does
+    not exist". That message comes from Zoho (relayed by our unsubscribe fn)
+    when the contact exists in Firestore but Zoho never got it (unconfirmed /
+    web-optin never landed).
+    - cloud-functions/index.js zohoList(): listunsubscribe now tolerates
+      "contact does not exist"-type errors, treating them as already-
+      unsubscribed and letting the Firestore update proceed.
+
+FEATURE: Pull the subscriber list FROM Zoho.
+    - cloud-functions/index.js: new editor-only syncSubscribers callable reads
+      the Zoho list (getlistsubscribers, paginated) and upserts contacts into
+      Firestore — active -> active, unsub -> inactive — preserving linkedaccount.
+      Also flips confirmed pending signups to Active, so it doubles as a manual
+      alternative to the confirmOptin webhook.
+    - admin.html + functions/admin-console.js: "Sync from Zoho" button in the
+      Subscribers header.
+
+
+2026-07-09  (Newsletter: "Awaiting Opt-In" status + confirmation flow)
+---------------------------------------------------------------------
+FEATURE: Subscribers now have a three-state status and show up immediately.
+    - cloud-functions/index.js: subscribe() records the subscriber as
+      status:"pending" (Awaiting Opt-In) BEFORE handing off to Zoho, so a new
+      email appears in the admin console right away. The Zoho web-optin submit
+      is now best-effort (a Zoho hiccup no longer prevents the record). New
+      confirmOptin HTTP endpoint flips pending -> active when the visitor
+      clicks the opt-in link (wire it in Zoho as a signup webhook / redirect;
+      set OPTIN_CONFIRM_TOKEN). upsert/setSubscriberActive now store `status`
+      ("pending"|"active"|"inactive") alongside the legacy `active` bool.
+    - functions/admin-console.js: subscriber + user rows show the status label
+      (Awaiting Opt-In / Active / Inactive). Pending rows get a "Mark Active"
+      override (editor-only direct write); active -> Deactivate, inactive ->
+      Reactivate.
+    - profile.html: shows "Awaiting opt-in (check your email)" with a
+      "Resend opt-in email" button for pending subscriptions.
+    - modern.css: .admin-tag.pending (amber). firestore.rules: schema comment
+      updated to include `status`.
+    - NOTE: automatic pending->active requires the Zoho side to call
+      confirmOptin; until that's wired, use "Mark Active" in the admin console.
+
+
+2026-07-09  (Newsletter: tie subscribers to the signup-form subscription)
+-------------------------------------------------------------------------
+FIX: Subscriptions were landing in "just a list" instead of being tied to the
+    Zoho signup form's subscription.
+    - cloud-functions/index.js: the subscribe() Cloud Function now submits
+      through the Zoho web-optin SIGNUP FORM endpoint (weboptin.zc) using the
+      form's hidden keys (new WEBOPTIN block) instead of the list-level
+      `listsubscribe` API. The key difference is the populated zcld
+      (1173a63da1f42fa06) + new zc_formIx from the updated embed code, which
+      binds each contact to the form's subscription/list. Zoho still sends the
+      double opt-in email.
+    - Kept our own form UI (popup / opt-in checkbox / profile) unchanged — only
+      the server-side submission target changed. Firestore `subscribers` mirror
+      still upserted so the admin console + profile stay in sync.
+    - unsubscribe() unchanged: still uses the list API (needs ZOHO_LIST_KEY);
+      that list must match the form's list.
+
+
 2026-07-06  (Zoho Campaigns newsletter integration)
 ---------------------------------------------------
 FEATURE: Newsletter now live via Zoho Campaigns.

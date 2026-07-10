@@ -169,6 +169,28 @@ a {
     margin-left: 10px;
 }
 
+.subscription-btn {
+    margin-left: auto;
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    background: #022d33;
+    color: #fff;
+    transition: all 0.2s ease;
+}
+
+.subscription-btn:hover {
+    background: #034d5a;
+}
+
+.subscription-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
 .profile-actions {
     margin-top: 30px;
     display: flex;
@@ -1195,6 +1217,20 @@ body {
 .post-read-time {
     color: #666;
     font-size: 14px;
+}
+
+.post-views {
+    color: #666;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.post-views-icon {
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
 }
 
 .post-full-tags {

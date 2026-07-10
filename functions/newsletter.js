@@ -25,32 +25,11 @@
 
   const Newsletter = {};
 
-  // ---- Configuration (placeholders until backend is chosen) ----
+  // ---- Configuration ----
+  // Subscriptions now go through the `subscribe` Cloud Function, which talks to
+  // Zoho Campaigns server-side with secret credentials. No Zoho form URLs or
+  // list keys live here anymore.
   Newsletter.config = {
-    // When using Zoho Campaigns' hosted signup form, set this to the form's
-    // POST action URL and list field names Zoho generates. Until then the
-    // subscribe() call below runs in PLACEHOLDER mode (no network request).
-    provider: "zoho",                   // "PLACEHOLDER" | "zoho"
-    zohoFormActionUrl: "https://zgnp-zngp.maillist-manage.com/weboptin.zc",
-    zohoEmailFieldName: "CONTACT_EMAIL",
-    // Hidden fields copied from the Zoho web-optin embed. These identify the
-    // form/list to Zoho; the empty ones are intentionally blank (Zoho fills or
-    // ignores them). Zoho sends the (double) opt-in confirmation email.
-    zohoExtraFields: {
-      zx: "135c11367",
-      zcvers: "3.0",
-      zctd: "1173a63da1f42bf71",
-      zc_formIx: "3z0596d5df2f80ed5eea3820d1bfe30a3c987a7a228cf7cfc036e24c126582ed97",
-      mode: "OptinCreateView",
-      submitType: "optinCustomView",
-      formType: "QuickForm",
-      zc_trackCode: "ZCFORMVIEW",
-      viewFrom: "URL_ACTION",
-      oldListIds: "",
-      zcld: "",
-      emailReportId: ""
-    },
-
     // UI copy
     popupTitle: "Stay in the loop",
     popupBody: "Get an email when I publish a new project or blog post. No spam, unsubscribe anytime.",
@@ -65,7 +44,7 @@
   const LS = {
     popupSeen: "vr_newsletter_popup_seen",
     subscribed: "vr_newsletter_subscribed",
-    pendingEmails: "vr_newsletter_pending", // local record while in PLACEHOLDER mode
+    pendingEmails: "vr_newsletter_pending", // legacy local capture (unused)
   };
 
   // ---- Helpers ----
@@ -81,11 +60,29 @@
   }
 
   /**
+   * Record a subscription in the Firestore `subscribers` collection.
+   *
+   * Doc id == the lowercased email, so duplicates are impossible: creating a
+   * subscription for an email that already exists is (server-side) an UPDATE,
+   * @deprecated Kept only as a thin alias; the real work is done server-side
+   * by the `subscribe` Cloud Function (see Newsletter.subscribe).
+   */
+  Newsletter.recordSubscriber = function (email) {
+    return Newsletter.subscribe(email, "record");
+  };
+
+  /**
    * THE single integration point.
+   *
+   * Calls the `subscribe` Cloud Function, which (server-side) submits the email
+   * through the Zoho Campaigns web-optin SIGNUP FORM — tying the contact to the
+   * form's subscription (its list), not just a bare list — AND upserts the
+   * Firestore `subscribers` record. No Zoho keys ever touch the browser.
+   *
    * Returns a Promise that resolves on success and rejects with an Error.
    *
    * @param {string} email
-   * @param {string} source  e.g. "popup" | "registration"
+   * @param {string} source  e.g. "popup" | "registration" | "profile"
    */
   Newsletter.subscribe = function (email, source) {
     email = String(email || "").trim().toLowerCase();
@@ -95,61 +92,35 @@
       return Promise.reject(new Error("Please enter a valid email address."));
     }
 
-    if (Newsletter.config.provider === "zoho") {
-      // ----- FUTURE: real Zoho Campaigns submission -----
-      // Zoho's hosted signup form expects a normal form POST. Because that
-      // endpoint is cross-origin and returns HTML, the simplest reliable
-      // approach is a hidden <form> submit (no-cors) or their JS form embed.
-      // Wire this up when you have the real action URL + field names.
-      const cfg = Newsletter.config;
-      const form = document.createElement("form");
-      form.action = cfg.zohoFormActionUrl;
-      form.method = "POST";
-      form.target = "vr_newsletter_sink";
-      form.style.display = "none";
-
-      const addField = (name, value) => {
-        const i = document.createElement("input");
-        i.type = "hidden"; i.name = name; i.value = value;
-        form.appendChild(i);
-      };
-      addField(cfg.zohoEmailFieldName, email);
-      Object.entries(cfg.zohoExtraFields || {}).forEach(([k, v]) => addField(k, v));
-
-      // Hidden iframe sink so the page doesn't navigate away.
-      let sink = document.getElementById("vr_newsletter_sink");
-      if (!sink) {
-        sink = document.createElement("iframe");
-        sink.name = "vr_newsletter_sink";
-        sink.id = "vr_newsletter_sink";
-        sink.style.display = "none";
-        document.body.appendChild(sink);
-      }
-      document.body.appendChild(form);
-      form.submit();
-      form.remove();
-
-      lsSet(LS.subscribed, "1");
-      return Promise.resolve({ email, source, mode: "zoho" });
+    if (typeof window.callFunction !== "function") {
+      return Promise.reject(new Error("Subscription service is unavailable right now."));
     }
 
-    // ----- PLACEHOLDER mode: no backend yet -----
-    // Records the email locally so the UI works end-to-end and you can see
-    // captured addresses in the console / localStorage while testing.
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        let pending = [];
-        try { pending = JSON.parse(lsGet(LS.pendingEmails) || "[]"); } catch (_) {}
-        pending.push({ email, source, at: new Date().toISOString() });
-        lsSet(LS.pendingEmails, JSON.stringify(pending));
-        lsSet(LS.subscribed, "1");
-        console.info(
-          "[newsletter] PLACEHOLDER subscribe captured:",
-          { email, source },
-          "\n(No email was actually sent — wire Newsletter.subscribe() to Zoho to go live.)"
-        );
-        resolve({ email, source, mode: "placeholder" });
-      }, 500);
+    return window.callFunction("subscribe", { email }).then((res) => {
+      lsSet(LS.subscribed, "1");
+      return { email, source, mode: "cloud-function", ...(res || {}) };
+    });
+  };
+
+  /**
+   * Unsubscribe / deactivate a subscription via the `unsubscribe` Cloud
+   * Function. Requires the caller to be signed in as the email's owner or an
+   * editor. Pass { delete: true } (editors only) to remove the record.
+   *
+   * @param {string} email
+   * @param {object} [opts] { delete?: boolean }
+   */
+  Newsletter.unsubscribe = function (email, opts) {
+    email = String(email || "").trim().toLowerCase();
+    if (!isValidEmail(email)) {
+      return Promise.reject(new Error("Invalid email address."));
+    }
+    if (typeof window.callFunction !== "function") {
+      return Promise.reject(new Error("Subscription service is unavailable right now."));
+    }
+    return window.callFunction("unsubscribe", {
+      email,
+      delete: !!(opts && opts.delete),
     });
   };
 

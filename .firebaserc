@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "default": "studio-4706670934-ba8cb"
+  },
+  "targets": {},
+  "etags": {
+    "studio-4706670934-ba8cb": {
+      "extensionInstances": {}
+    }
+  },
+  "dataconnectEmulatorConfig": {}
+}

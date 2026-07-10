@@ -184,6 +184,17 @@ async loadPost(postId, animate = true) {
         const post = { id: postSnap.id, ...postSnap.data() };
         this.currentPost = post;
 
+        // ---- Increment view count ----
+        // Rules allow anyone to bump ONLY the `views` field on a post.
+        const currentViews = typeof post.views === 'number' ? post.views : 0;
+        const displayViews = currentViews + 1;
+        try {
+            await window.fsUpdateDoc(postRef, { views: window.fsIncrement(1) });
+            post.views = displayViews;
+        } catch (viewErr) {
+            console.warn('Could not increment views:', viewErr);
+        }
+
         // Prev/Next
         const postsRef = window.fsCollection(db, 'posts');
         const prevQuery = window.fsQuery(
@@ -237,6 +248,10 @@ async loadPost(postId, animate = true) {
                     <span class="post-author">By ${post.author || 'Anonymous'}</span>
                     <span class="post-date-full">${postDate.toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})}</span>
                     <span class="post-read-time">${readTime} min read</span>
+                    <span class="post-views" title="Views">
+                        <svg class="post-views-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                        ${displayViews.toLocaleString()}
+                    </span>
                 </div>
                 
                 ${post.tags && post.tags.length > 0 ? `

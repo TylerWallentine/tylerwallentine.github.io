@@ -162,7 +162,7 @@
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const email = document.getElementById("email").value.trim();
+      const email = document.getElementById("email").value.trim().toLowerCase();
       const password = document.getElementById("password").value.trim();
       const firstName = document.getElementById("firstName").value.trim();
       const middleInitial = document.getElementById("middleInitial").value.trim();

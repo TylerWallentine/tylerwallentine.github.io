@@ -9,18 +9,46 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="styles-tablet.css">
     <link rel="stylesheet" href="styles-phone.css">
+    <link rel="stylesheet" href="newsletter.css">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <style> body {background: linear-gradient(to bottom, white 0%, #1a4d3a 100%); margin: 0;}</style>
+    <style>
+        body {background: linear-gradient(to bottom, white 0%, #1a4d3a 100%); margin: 0;}
+        /* Admin account dropdown (self-contained; the .account-bar is already
+           position:fixed, so it anchors this absolutely-positioned menu). */
+        .account-menu {
+            position: absolute;
+            top: 100%;
+            right: 12px;
+            min-width: 180px;
+            background: #fff;
+            border: 1px solid #e5e7e7;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+            overflow: hidden;
+            display: none;
+            z-index: 20;
+        }
+        .account-menu.open { display: block; }
+        .account-menu-item {
+            display: block;
+            padding: 10px 16px;
+            color: #022d33;
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+        .account-menu-item:hover { background: #f2f6f6; }
+    </style>
     <title>Profile - Vapor Rain</title>
     <script type="module" src="j-firebase.js"></script>
     <script type="module" src="functions/login.js"></script>
     <script type="module" src="functions/logout.js"></script>
     <script type="module" src="functions/profile-edit.js"></script>
     <script src="j-modules.js"></script>
+    <script src="functions/newsletter.js"></script>
     
     <script>
         document.addEventListener('DOMContentLoaded', async function() {
@@ -69,6 +97,7 @@
                         
                         if (userProfile) {
                             updateProfileFields(userProfile, user);
+                            loadSubscription(user);
                         } else {
                             console.log('No user profile found in Firestore');
                             showProfileError('Profile data not found');
@@ -159,12 +188,116 @@
             }
         }
 
+        // ============================================================
+        //  Newsletter subscription management (from the profile page)
+        // ============================================================
+        let currentSubscription = null; // { id, email, active, linkedaccount }
+        let currentSubUser = null;
+
+        async function loadSubscription(user) {
+            currentSubUser = user;
+            const valueEl = document.querySelector('.profile-subscription');
+            const btn = document.getElementById('subscription-btn');
+            if (!valueEl || !btn) return;
+
+            const db = window.firestoreDb;
+            const email = (user.email || '').toLowerCase();
+            if (!db || !email) { valueEl.textContent = 'Unavailable'; return; }
+
+            try {
+                // Find any subscriber doc tied to this email (rules allow the
+                // owner to read their own by matching token email).
+                const q = window.fsQuery(
+                    window.fsCollection(db, 'subscribers'),
+                    window.fsWhere('email', '==', email)
+                );
+                const qs = await window.fsGetDocs(q);
+                currentSubscription = qs.empty
+                    ? null
+                    : { id: qs.docs[0].id, ...qs.docs[0].data() };
+
+                // Link the subscription to this account if it isn't already.
+                if (currentSubscription &&
+                    currentSubscription.linkedaccount !== user.uid) {
+                    try {
+                        await window.fsUpdateDoc(
+                            window.fsDoc(db, 'subscribers', currentSubscription.id),
+                            { linkedaccount: user.uid }
+                        );
+                        currentSubscription.linkedaccount = user.uid;
+                    } catch (e) { /* non-fatal */ }
+                }
+            } catch (e) {
+                console.warn('Could not load subscription:', e);
+            }
+
+            renderSubscription();
+        }
+
+        function renderSubscription() {
+            const valueEl = document.querySelector('.profile-subscription');
+            const btn = document.getElementById('subscription-btn');
+            if (!valueEl || !btn) return;
+            valueEl.classList.remove('loading');
+
+            // Prefer the explicit status; fall back to the legacy `active` bool.
+            const st = currentSubscription
+                ? (currentSubscription.status ||
+                   ((currentSubscription.active !== false && currentSubscription.active !== 0)
+                     ? 'active' : 'inactive'))
+                : null;
+
+            if (!currentSubscription) {
+                valueEl.textContent = 'Not subscribed';
+                btn.textContent = 'Subscribe';
+                btn.dataset.action = 'subscribe';
+            } else if (st === 'active') {
+                valueEl.textContent = 'Active';
+                btn.textContent = 'Deactivate';
+                btn.dataset.action = 'deactivate';
+            } else if (st === 'pending') {
+                valueEl.textContent = 'Awaiting opt-in (check your email)';
+                btn.textContent = 'Resend opt-in email';
+                btn.dataset.action = 'resubscribe';
+            } else {
+                valueEl.textContent = 'Inactive';
+                btn.textContent = 'Resubscribe';
+                btn.dataset.action = 'resubscribe';
+            }
+            btn.style.display = '';
+        }
+
+        document.addEventListener('click', async (e) => {
+            const btn = e.target.closest('#subscription-btn');
+            if (!btn || !currentSubUser) return;
+            const action = btn.dataset.action;
+            const db = window.firestoreDb;
+            const email = (currentSubUser.email || '').toLowerCase();
+            btn.disabled = true;
+            try {
+                // All Zoho-touching actions go through the Cloud Functions
+                // (via Newsletter), which keep Zoho + Firestore in sync.
+                if (action === 'subscribe' || action === 'resubscribe') {
+                    await window.Newsletter.subscribe(email, 'profile');
+                } else if (action === 'deactivate') {
+                    await window.Newsletter.unsubscribe(email);
+                }
+                await loadSubscription(currentSubUser);
+            } catch (err) {
+                console.error('Subscription action failed:', err);
+                alert('Could not update subscription. Please try again.');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
         // Make functions globally available for debugging
         window.populateUserProfile = populateUserProfile;
         window.updateProfileFields = updateProfileFields;
+        window.loadSubscription = loadSubscription;
 </script>
 </head>
-<body>
+<body data-newsletter-no-popup>
     <div id="account-bar"></div>
     <header class="hero_side"><div class="hero-content"><h2>Account Center</h2></div></header>
     <div id="profile-box"></div>

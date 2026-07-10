@@ -11,6 +11,7 @@ import {
   limit,
   startAfter,
   addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   increment
@@ -21,6 +22,10 @@ import {
   createUserWithEmailAndPassword,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  getFunctions,
+  httpsCallable
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 
 // Initialize Firebase (modular)
 const firebaseConfig = {
@@ -35,6 +40,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+// Cloud Functions live in us-central1 (see cloud-functions/index.js).
+const functions = getFunctions(app, "us-central1");
+
+// Call a callable Cloud Function by name and resolve with its data payload.
+// e.g. await window.callFunction("subscribe", { email })
+window.firebaseFunctions = functions;
+window.callFunction = (name, data) =>
+    httpsCallable(functions, name)(data || {}).then((res) => res.data);
 
 // Expose modular APIs for non-module scripts
 window.firebaseApp = app;
@@ -51,6 +64,7 @@ window.fsWhere = where;
 window.fsOrderBy = orderBy;
 window.fsLimit = limit;
 window.fsAddDoc = addDoc;
+window.fsSetDoc = setDoc;
 window.fsUpdateDoc = updateDoc;
 window.fsDeleteDoc = deleteDoc;
 window.fsIncrement = increment;
@@ -140,6 +154,38 @@ async function getUserProfileById(uid) {
 }
 window.getUserProfileById = getUserProfileById;
 
+// ---------------------------------------------------------------------------
+// Account-bar cache: remember the signed-in user's display name + admin flag
+// in localStorage so we can paint the header immediately on the next page
+// load, BEFORE Firebase auth re-resolves. This eliminates the "Log In /
+// Sign Up" flash for already-logged-in users.
+// ---------------------------------------------------------------------------
+const ACCOUNT_CACHE_KEY = 'vr_account_cache';
+function readAccountCache() {
+    try { return JSON.parse(window.localStorage.getItem(ACCOUNT_CACHE_KEY) || 'null'); }
+    catch (_) { return null; }
+}
+function writeAccountCache(obj) {
+    try { window.localStorage.setItem(ACCOUNT_CACHE_KEY, JSON.stringify(obj)); } catch (_) {}
+}
+function clearAccountCache() {
+    try { window.localStorage.removeItem(ACCOUNT_CACHE_KEY); } catch (_) {}
+}
+window.readAccountCache = readAccountCache;
+
+// Paint the account bar from cache (used at first paint and after async module
+// loads that inject the header). Safe to call repeatedly.
+function paintAccountBarFromCache() {
+    const cache = readAccountCache();
+    const bar = document.querySelector('.account-bar');
+    if (!bar) return;
+    if (cache && cache.displayName) {
+        window.__isAdminUser = !!cache.isAdmin;
+        updateAccountBar(bar, cache.displayName);
+    }
+}
+window.paintAccountBarFromCache = paintAccountBarFromCache;
+
 // Keep your main listener as is
 onAuthStateChanged(auth, async (user) => {
     if (user) {
@@ -150,11 +196,14 @@ onAuthStateChanged(auth, async (user) => {
         const middleInitial = userProfile?.middleInitial;
         const lastName = userProfile?.lastName;
 
+        const emailName = user.email ? user.email.split('@')[0] : 'Account';
         let displayName;
-        if (middleInitial) {
-            displayName = `${firstName} ${middleInitial}. ${lastName}` || user.email.split('@')[0];
+        if (firstName && middleInitial) {
+            displayName = `${firstName} ${middleInitial}. ${lastName || ''}`.trim();
+        } else if (firstName || lastName) {
+            displayName = `${firstName || ''} ${lastName || ''}`.trim();
         } else {
-            displayName = `${firstName} ${lastName}` || user.email.split('@')[0];
+            displayName = userProfile?.alias || emailName;
         }
         
         // Admin = site owner email OR Firestore role "editor".
@@ -162,12 +211,16 @@ onAuthStateChanged(auth, async (user) => {
             user.email === "wallentinetyler@gmail.com" ||
             (userProfile?.role || "").toLowerCase() === "editor";
 
+        // Cache for the next page load so the name shows instantly.
+        writeAccountCache({ displayName, isAdmin: window.__isAdminUser });
+
         // Trigger UI updates manually
         updateAccountBar(document.querySelector('.account-bar'), displayName);
         
     } else {
         console.log('User is not logged in');
         window.__isAdminUser = false;
+        clearAccountCache();
         updateAccountBar(document.querySelector('.account-bar'), null);
     }
 });
@@ -178,6 +231,19 @@ function updateAccountBar(accountBarElement, displayName) {
     
     const accountLink = accountBarElement.querySelector('.account');
     if (!accountLink) return;
+
+    // Called with no displayName (e.g. from ModuleLoader after injecting the
+    // header): fall back to the cached name so async-loaded bars don't flash
+    // "Log In / Sign Up" for logged-in users.
+    if (displayName === undefined) {
+        const cache = readAccountCache();
+        if (cache && cache.displayName) {
+            window.__isAdminUser = !!cache.isAdmin;
+            displayName = cache.displayName;
+        } else {
+            displayName = null;
+        }
+    }
 
     // Clear any previously-built admin dropdown so repeated calls stay clean.
     const existingMenu = accountBarElement.querySelector('.account-menu');
@@ -231,6 +297,10 @@ function updateAccountBar(accountBarElement, displayName) {
 
 // Make it globally available
 window.updateAccountBar = updateAccountBar;
+
+// Paint immediately from cache (module runs after the inlined header is parsed).
+paintAccountBarFromCache();
+document.addEventListener('DOMContentLoaded', paintAccountBarFromCache);
 
 
 

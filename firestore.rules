@@ -52,7 +52,11 @@ service cloud.firestore {
     // ========== Posts ==========
     match /posts/{postId} {
       allow read: if true;
-      allow create, update, delete: if isEditor();
+      allow create, delete: if isEditor();
+      // Editors may edit anything. Anyone else may update ONLY the `views`
+      // counter (so opening a post can bump its view count).
+      allow update: if isEditor() ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views']);
     }
 
     // ========== Pages (e.g. pages/about-me) ==========
@@ -63,10 +67,26 @@ service cloud.firestore {
       allow create, update, delete: if isEditor();
     }
 
-    // ========== Email Subscribers (managed by the admin console) ==========
+    // ========== Email Subscribers ==========
+    // Subscriber docs are keyed by (lowercased) email. Schema:
+    //   email (string), linkedaccount ("N/A" or the user's uid),
+    //   status ("pending"|"active"|"inactive"), active (bool, kept in sync)
+    // Creation + all Zoho-synced writes go through the `subscribe` /
+    // `unsubscribe` Cloud Functions (admin SDK, which bypasses these rules), so
+    // clients can't create subscriptions directly. A signed-in user still
+    // "owns" the subscription whose email matches their auth token, so the
+    // profile page can READ its status and link it to their account. Editors
+    // manage everything from the admin console.
     match /subscribers/{docId} {
-      allow create: if true;                 // future public newsletter signup
-      allow read, update, delete: if isEditor();
+      function ownsSubByEmail() {
+        return isSignedIn() &&
+               request.auth.token.email != null &&
+               resource.data.email == request.auth.token.email;
+      }
+      allow create: if isEditor();
+      allow read:   if isEditor() || ownsSubByEmail();
+      allow update: if isEditor() || ownsSubByEmail();
+      allow delete: if isEditor();
     }
 
     // ========== Survey responses ==========
