@@ -8,5 +8,42 @@
   },
   "storage": {
     "rules": "storage.rules"
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "cloud-functions/**",
+      "functions/**/*.map",
+      "__pycache__/**",
+      "obsolete/**",
+      "server/**",
+      "*.py",
+      "*.bat",
+      "*.txt",
+      "*.md"
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(jpg|jpeg|png|webp|gif|svg|ico|woff|woff2)",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        ]
+      },
+      {
+        "source": "**/*.@(css|js)",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=604800" }
+        ]
+      },
+      {
+        "source": "**/*.html",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+        ]
+      }
+    ]
   }
 }

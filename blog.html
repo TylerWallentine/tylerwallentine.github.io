@@ -8,7 +8,8 @@
     <link rel="stylesheet" href="styles.css">   
     <link rel="stylesheet" href="modern.css">
     <link rel="stylesheet" href="styles-phone.css" media="only screen and (max-width: 768px)">
-    <link rel="stylesheet" href="newsletter.css">
+    <link rel="stylesheet" href="newsletter.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="newsletter.css"></noscript>
     <!-- KaTeX stylesheet: hides KaTeX's MathML fallback so rendered LaTeX in
          blog posts doesn't show duplicate raw text. -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css">
@@ -16,7 +17,8 @@
     <link rel="preload" as="image" href="images/rains-header.webp">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"></noscript>
     
     <!-- Load existing Firebase from j-firebase.js (optional) -->
     <script type="module" src="j-firebase.js"></script>
@@ -265,8 +267,8 @@
         }, 500); // Wait 500ms for j-firebase.js to potentially load
     </script>
     
-    <script src="j-modules.js"></script>
-    <script src="functions/newsletter.js"></script>
+    <script defer src="j-modules.js"></script>
+    <script defer src="functions/newsletter.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', async function() {
