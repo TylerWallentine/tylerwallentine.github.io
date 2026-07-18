@@ -61,6 +61,9 @@ class ProjectPostEditor {
                 <button class="toolbar-btn" data-action="latex" title="Insert LaTeX">
                     ∑ LaTeX
                 </button>
+                <button class="toolbar-btn" data-action="code" title="Insert Code Block">
+                    &gt;_ Code
+                </button>
             </div>
 
             
@@ -87,6 +90,19 @@ class ProjectPostEditor {
                 <div class="modal-buttons">
                     <button id="insertLatex">Insert</button>
                     <button id="cancelLatex">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Code Modal -->
+        <div class="modal" id="codeModal">
+            <div class="modal-content">
+                <h3>Insert Code</h3>
+                <input type="text" id="codeLanguage" placeholder="Language (optional, e.g. python, js)">
+                <textarea id="codeInput" class="code-input" placeholder="Paste your code here..." spellcheck="false"></textarea>
+                <div class="modal-buttons">
+                    <button id="insertCode">Insert</button>
+                    <button id="cancelCode">Cancel</button>
                 </div>
             </div>
         </div>
@@ -119,6 +135,13 @@ class ProjectPostEditor {
 
         this.init();
     }
+    // Scoped lookup: each phase has its own editor + modals, so we must NOT
+    // use document.getElementById (duplicate IDs across phases). Look up
+    // elements only inside THIS editor's container.
+    $id(id) {
+        return this.container.querySelector('#' + id);
+    }
+
     init() {
     this.setupToolbar();
     this.setupEditor();
@@ -126,6 +149,7 @@ class ProjectPostEditor {
     this.setupModals();
     this.setupKeyboardShortcuts();
     this.setupLatexEditing(); // Add this line
+    this.setupCodeEditing();
     }
     
     setupToolbar() {
@@ -228,13 +252,13 @@ class ProjectPostEditor {
     
     setupModals() {
         // Link modal
-        const linkModal = document.getElementById('linkModal');
-        const insertLink = document.getElementById('insertLink');
-        const cancelLink = document.getElementById('cancelLink');
+        const linkModal = this.$id('linkModal');
+        const insertLink = this.$id('insertLink');
+        const cancelLink = this.$id('cancelLink');
         
         insertLink.addEventListener('click', () => {
-            const text = document.getElementById('linkText').value;
-            const url = document.getElementById('linkUrl').value;
+            const text = this.$id('linkText').value;
+            const url = this.$id('linkUrl').value;
             if (text && url) {
                 this.insertLink(text, url);
                 this.closeModal('linkModal');
@@ -246,11 +270,11 @@ class ProjectPostEditor {
         });
         
         // LaTeX modal
-        const latexModal = document.getElementById('latexModal');
-        const latexInput = document.getElementById('latexInput');
-        const latexPreview = document.getElementById('latexPreview');
-        const insertLatex = document.getElementById('insertLatex');
-        const cancelLatex = document.getElementById('cancelLatex');
+        const latexModal = this.$id('latexModal');
+        const latexInput = this.$id('latexInput');
+        const latexPreview = this.$id('latexPreview');
+        const insertLatex = this.$id('insertLatex');
+        const cancelLatex = this.$id('cancelLatex');
         
         latexInput.addEventListener('input', () => {
             this.previewLatex(latexInput.value, latexPreview);
@@ -266,6 +290,23 @@ class ProjectPostEditor {
         
         cancelLatex.addEventListener('click', () => {
             this.closeModal('latexModal');
+        });
+
+        // Code modal
+        const insertCodeBtn = this.$id('insertCode');
+        const cancelCodeBtn = this.$id('cancelCode');
+
+        insertCodeBtn.addEventListener('click', () => {
+            const code = this.$id('codeInput').value;
+            const language = this.$id('codeLanguage').value;
+            if (code.trim()) {
+                this.insertCode(code, language);
+                this.closeModal('codeModal');
+            }
+        });
+
+        cancelCodeBtn.addEventListener('click', () => {
+            this.closeModal('codeModal');
         });
         
         // Close modals when clicking outside
@@ -342,6 +383,10 @@ class ProjectPostEditor {
                 this.saveSelection(); // Add this line
                 this.openModal('latexModal');
                 break;
+            case 'code':
+                this.saveSelection();
+                this.openModal('codeModal');
+                break;
         }
     }
     
@@ -409,15 +454,22 @@ class ProjectPostEditor {
         const selection = window.getSelection();
         let range;
         
-        if (this.savedRange) {
-            // Restore the saved range
+        // Helper: is a range anchored inside THIS editor?
+        const inEditor = (r) => r && this.editor.contains(
+            r.commonAncestorContainer.nodeType === 1
+                ? r.commonAncestorContainer
+                : r.commonAncestorContainer.parentNode
+        );
+        
+        if (inEditor(this.savedRange)) {
+            // Restore the saved range (only if it belongs to this editor)
             range = this.savedRange;
             selection.removeAllRanges();
             selection.addRange(range);
-        } else if (selection.rangeCount > 0) {
+        } else if (selection.rangeCount > 0 && inEditor(selection.getRangeAt(0))) {
             range = selection.getRangeAt(0);
         } else {
-            // No selection, create one at the end of the editor
+            // No usable selection inside the editor: insert at the end of it
             range = document.createRange();
             range.selectNodeContents(this.editor);
             range.collapse(false);
@@ -648,8 +700,8 @@ class ProjectPostEditor {
     this.restoreSelectionAndInsert(link);
     
     // Clear the form
-    document.getElementById('linkText').value = '';
-    document.getElementById('linkUrl').value = '';
+    this.$id('linkText').value = '';
+    this.$id('linkUrl').value = '';
     }
     setupLatexEditing() {
     // Use event delegation to handle clicks on LaTeX containers
@@ -666,8 +718,8 @@ class ProjectPostEditor {
     const currentLatex = container.getAttribute('data-latex');
     
     // Pre-fill the modal with current LaTeX
-    document.getElementById('latexInput').value = currentLatex;
-    this.previewLatex(currentLatex, document.getElementById('latexPreview'));
+    this.$id('latexInput').value = currentLatex;
+    this.previewLatex(currentLatex, this.$id('latexPreview'));
     
     // Store reference to the container being edited
     this.editingLatexContainer = container;
@@ -708,8 +760,8 @@ class ProjectPostEditor {
         }
         
         // Clear the form
-        document.getElementById('latexInput').value = '';
-        document.getElementById('latexPreview').innerHTML = '';
+        this.$id('latexInput').value = '';
+        this.$id('latexPreview').innerHTML = '';
         
         console.log('LaTeX processed:', latex);
     } catch (error) {
@@ -718,6 +770,77 @@ class ProjectPostEditor {
     }
     }
     
+    setupCodeEditing() {
+    // Event delegation to handle clicks on code containers for editing
+    this.editor.addEventListener('click', (e) => {
+        if (e.target.closest('.code-container')) {
+            const container = e.target.closest('.code-container');
+            this.editCode(container);
+            e.stopPropagation();
+        }
+    });
+    }
+
+    editCode(container) {
+    const codeEl = container.querySelector('code');
+    this.$id('codeInput').value = codeEl ? codeEl.textContent : '';
+    this.$id('codeLanguage').value = container.getAttribute('data-language') || '';
+
+    // Store reference to the container being edited
+    this.editingCodeContainer = container;
+
+    this.openModal('codeModal');
+    }
+
+    insertCode(code, language = '') {
+    try {
+        if (this.editingCodeContainer) {
+            // Editing an existing code container
+            const container = this.editingCodeContainer;
+            this.renderCodeContainer(container, code, language);
+            this.editingCodeContainer = null;
+        } else {
+            // Create a new code container
+            const container = document.createElement('pre');
+            container.contentEditable = false;
+            this.renderCodeContainer(container, code, language);
+            this.restoreSelectionAndInsert(container);
+
+            // Add a line break after so the caret can escape the block
+            const br = document.createElement('br');
+            container.after(br);
+        }
+
+        // Clear the form
+        this.$id('codeInput').value = '';
+        this.$id('codeLanguage').value = '';
+    } catch (error) {
+        console.error('Code processing error:', error);
+        alert('Error inserting code: ' + error.message);
+    }
+    }
+
+    renderCodeContainer(container, code, language) {
+    container.className = 'code-container';
+    if (language) {
+        container.setAttribute('data-language', language);
+    } else {
+        container.removeAttribute('data-language');
+    }
+
+    // Build a <code> element; textContent auto-escapes the code safely
+    container.innerHTML = '';
+    if (language) {
+        const label = document.createElement('span');
+        label.className = 'code-language-label';
+        label.textContent = language;
+        container.appendChild(label);
+    }
+    const codeEl = document.createElement('code');
+    codeEl.textContent = code;
+    container.appendChild(codeEl);
+    }
+
     previewLatex(latex, previewElement) {
         if (!latex.trim()) {
             previewElement.innerHTML = '';
@@ -832,7 +955,7 @@ class ProjectPostEditor {
     }
     
     openModal(modalId) {
-        const modal = document.getElementById(modalId);
+        const modal = this.$id(modalId);
         modal.style.display = 'block';
         
         // Focus first input
@@ -843,7 +966,7 @@ class ProjectPostEditor {
     }
     
     closeModal(modalId) {
-    const modal = document.getElementById(modalId);
+    const modal = this.$id(modalId);
     modal.style.display = 'none';
     
     // Clear form fields
@@ -857,6 +980,9 @@ class ProjectPostEditor {
     // Clear editing reference
     if (modalId === 'latexModal') {
         this.editingLatexContainer = null;
+    }
+    if (modalId === 'codeModal') {
+        this.editingCodeContainer = null;
     }
     }
     

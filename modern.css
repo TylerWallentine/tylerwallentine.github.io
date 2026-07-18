@@ -582,3 +582,86 @@ button:active { transform: translateY(0); }
 .admin-status { min-height: 1.2em; margin-top: 12px; }
 .admin-status.is-success { color: #1f7a4d; }
 .admin-status.is-error { color: #b3261e; }
+
+/* ===== Code Blocks (project phases) ===== */
+.code-container {
+    position: relative;
+    display: block;
+    margin: 12px 0;
+    padding: 14px 16px;
+    background: #1e1e2e;
+    color: #e6e6e6;
+    border: 1px solid #313244;
+    border-radius: 8px;
+    font-family: "SF Mono", "Consolas", "Menlo", "Monaco", monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    max-height: 420px;
+    overflow: auto;
+    white-space: pre;
+    tab-size: 4;
+}
+
+.code-container code {
+    display: block;
+    background: none;
+    color: inherit;
+    padding: 0;
+    font-family: inherit;
+    white-space: pre;
+    word-break: normal;
+}
+
+.code-language-label {
+    position: sticky;
+    top: -14px;
+    left: 0;
+    display: inline-block;
+    margin: -6px 0 8px -4px;
+    padding: 2px 8px;
+    background: #313244;
+    color: #a6adc8;
+    border-radius: 0 0 6px 0;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-family: "SF Mono", "Consolas", monospace;
+    user-select: none;
+}
+
+/* Editor affordance: show it's clickable to edit */
+.editor .code-container {
+    cursor: pointer;
+}
+
+.editor .code-container:hover {
+    border-color: #007bff;
+}
+
+/* Custom scrollbar for code blocks */
+.code-container::-webkit-scrollbar {
+    height: 10px;
+    width: 10px;
+}
+.code-container::-webkit-scrollbar-track {
+    background: #181825;
+    border-radius: 8px;
+}
+.code-container::-webkit-scrollbar-thumb {
+    background: #45475a;
+    border-radius: 8px;
+}
+.code-container::-webkit-scrollbar-thumb:hover {
+    background: #585b70;
+}
+
+/* Code modal textarea */
+.code-input {
+    width: 100%;
+    min-height: 220px;
+    font-family: "SF Mono", "Consolas", "Menlo", monospace;
+    font-size: 0.9rem;
+    white-space: pre;
+    overflow: auto;
+    tab-size: 4;
+}
